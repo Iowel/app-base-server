@@ -1,0 +1,57 @@
+{{template "base" .}}
+
+{{define "title"}}
+    Подтверждение Email
+{{end}}
+
+{{define "content"}}
+  <div class="container mt-5">
+    <div class="text-center">
+      <div id="spinner" class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Загрузка...</span>
+      </div>
+      <h1 id="message" class="mt-4"></h1>
+      <a id="go-to-register" href="/login" class="btn btn-success mt-3 d-none">Перейти к на страницу входа</a>
+    </div>
+  </div>
+{{end}}
+
+{{define "js"}}
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const emailId = params.get("email_id");
+    const secretCode = params.get("secret_code");
+
+    const messageEl = document.getElementById("message");
+    const spinnerEl = document.getElementById("spinner");
+    const registerBtn = document.getElementById("go-to-register");
+
+    if (!emailId || !secretCode) {
+      spinnerEl.classList.add("d-none");
+      messageEl.innerText = "🚫 Некорректная ссылка!";
+      messageEl.classList.add("text-danger");
+    } else {
+      fetch(`{{.AUTHSERVICEAPI}}/v1/verify_email?email_id=${emailId}&secret_code=${secretCode}`)
+        .then(res => {
+          if (!res.ok) throw new Error("Ошибка запроса");
+          return res.json();
+        })
+        .then(data => {
+          spinnerEl.classList.add("d-none");
+          if (data.is_verified) {
+            messageEl.innerText = "✅ Email успешно подтвержден!";
+            messageEl.classList.add("text-success");
+            registerBtn.classList.remove("d-none");
+          } else {
+            messageEl.innerText = "❌ Email не подтвержден.";
+            messageEl.classList.add("text-danger");
+          }
+        })
+        .catch(() => {
+          spinnerEl.classList.add("d-none");
+          messageEl.innerText = "🚫 Ошибка при подтверждении.";
+          messageEl.classList.add("text-danger");
+        });
+    }
+  </script>
+{{end}}

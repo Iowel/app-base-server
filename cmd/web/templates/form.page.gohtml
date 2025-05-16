@@ -1,0 +1,112 @@
+{{template "base" .}}
+
+{{define "title"}}
+    Form
+{{end}}
+
+{{define "content"}}
+
+<div class="container mt-5">
+  <h2 class="mb-4">Форма ввода</h2>
+    <div class="alert alert-danger text-center d-none" id="form-messages"></div>
+  <form action="" method="post"
+    name="request_form" id="request_form"
+    class="d-block needs-validation charge-form"
+    autocomplete="off" novalidate="">
+
+    <div class="mb-3">
+      <label for="name" class="form-label">Имя</label>
+      <input type="text" class="form-control" id="name" name="name" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="email" class="form-label">Электронная почта</label>
+      <input type="email" class="form-control" id="email" name="email" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="message" class="form-label">Сообщение</label>
+      <textarea class="form-control" id="message" name="message" rows="4" required></textarea>
+    </div>
+
+    <a id="form-button" href="javascript:void(0)" class="btn btn-primary" onclick="val()">Отправить</a>
+           <div id="processing-form" class="text-center d-none">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+
+  </form>
+</div>
+
+{{end}}
+
+
+
+{{define "js"}}
+<script>
+checkAuth();
+
+let formMessages = document.getElementById("form-messages");
+const payButton = document.getElementById("form-button");
+const processing = document.getElementById("processing-form");
+
+function showError(msg) {
+        formMessages.classList.add("alert-danger");
+        formMessages.classList.remove("alert-success");
+        formMessages.classList.remove("d-none");
+        formMessages.innerText = msg;
+    }
+
+    function showSuccess() {
+        formMessages.classList.remove("alert-danger");
+        formMessages.classList.add("alert-success");
+        formMessages.classList.remove("d-none");
+        formMessages.innerText = "Сообщение успешно отправлено!";
+    }
+
+function val() {
+    let form = document.getElementById("request_form");
+    if (form.checkValidity() === false) {
+        this.event.preventDefault();
+        this.event.stopPropagation();
+        form.classList.add("was-validated");
+        return;
+    }
+    form.classList.add("was-validated");
+
+    let payload = {
+        name: document.getElementById("name").value,
+        email: document.getElementById("email").value,
+        message: document.getElementById("message").value,
+    }
+
+    let token = localStorage.getItem("token");
+
+
+    const requestOptions = {
+        method: 'post',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token,
+        },
+        body: JSON.stringify(payload),
+    }
+
+fetch("{{.SERVERIP}}/api/admin/requestform", requestOptions)
+    .then(response => response.json())
+    .then(data => {
+        console.log(data);
+        if (data.error === false) {
+
+            showSuccess();
+        } else {
+        
+            showError(data.message);
+        }
+    })
+}
+
+</script>
+{{end}}

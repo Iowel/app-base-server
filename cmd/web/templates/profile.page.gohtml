@@ -1,0 +1,369 @@
+{{template "base" .}}
+
+{{define "title"}}
+    Мой профиль
+{{end}}
+
+{{define "content"}}
+
+  <!-- Контент профиля -->
+
+
+<div class="container mt-5">
+  <div class="profile-card card shadow-sm">
+    <div class="card-body text-center">
+      <!-- Аватар -->
+      <img src="https://via.placeholder.com/150" id="avatar" class="avatar-img mb-3" alt="Avatar">
+      <h3 id="user-name">Имя пользователя</h3>
+      <p id="user-email">Email: user@example.com</p>
+
+
+    <!-- Статус пользователя -->
+    <p id="user-status" class="mt-2">
+      <strong>Ваш текущий статус:</strong> 
+      <span id="user-status-badge" class="badge bg-secondary">Загрузка...</span>
+    </p>
+
+
+    <!-- Переход в магазин статусов -->
+      <div class="mt-3">
+        <a href="/shop" class="btn btn-primary">
+          Приобрести статус
+        </a>
+      </div>
+
+      
+      <!-- Описание -->
+      <p><strong>О пользователе:</strong></p>
+      <p id="about">Здесь будет информация о пользователе.</p>
+      
+           <!-- Кнопка редактирования -->
+      <a href="/edit-profile" class="btn btn-primary mt-3">Редактировать профиль</a>
+
+            <!-- Кнопка для добавления баланса -->
+      <button id="addBalanceBtn" class="btn btn-success mt-3">Прибавить 1 к балансу</button>
+
+      <!-- Форма публикации поста -->
+      <hr class="dropdown-divider">
+      <h2>Новая запись</h2>
+      <form id="postForm" class="mt-3">
+        <div class="mb-3">
+          <input type="text" id="postTitle" class="form-control" placeholder="Заголовок" required>
+        </div>
+        <div class="mb-3">
+          <textarea id="postContent" class="form-control" rows="3" placeholder="Текст поста" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Опубликовать</button>
+      </form>
+
+      <hr class="dropdown-divider">
+        <h2>Мои посты</h2>
+      <div id="my-posts" class="mt-3"></div>
+
+
+      <!-- Список друзей -->
+       <hr class="dropdown-divider">
+       <hr class="dropdown-divider">
+              <hr class="dropdown-divider">
+      <h1><strong>Друзья:</strong></h1>
+      <ul id="friends-list" class="list-group list-group-flush">
+        <!-- Друзья будут добавляться сюда через JS -->
+      </ul>
+
+       <div id="users-list" class="row row-cols-1 row-cols-md-3 g-4"></div>
+      
+ 
+    </div>
+  </div>
+</div>
+
+<!-- Уведомления -->
+<div id="notification" class="notification"></div>
+
+
+{{end}}
+
+{{define "js"}}
+<script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+checkAuth();
+
+
+const userId = {{.UserID}};
+
+
+
+
+const usersList = document.getElementById('users-list');
+let token = localStorage.getItem("token");
+
+document.addEventListener("DOMContentLoaded", function () {
+  const requestOptions = {
+    method: 'get',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + token,
+    }
+  };
+
+  fetch("{{.SERVERIP}}/api/get-profile", requestOptions)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error("Ошибка ответа от сервера");
+      }
+      return response.json();
+    })
+    .then(function (data) {
+      // Очищаем usersList перед добавлением новых элементов
+      usersList.innerHTML = '';
+
+      // Добавляем карточки пользователей
+      data.friends.forEach(friendId => {
+        fetch(`{{.SERVERIP}}/friends/${friendId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+        .then(res => res.json())
+        .then(friendData => {
+          // Для каждого друга создаем карточку
+          friendData.forEach(friend => {
+            const userCard = document.createElement('div');
+            userCard.classList.add('col');
+            userCard.innerHTML = `
+              <div class="card shadow-sm">
+                <img src="${friend.avatar}" class="card-img-top" alt="Profile Picture">
+                <div class="card-body">
+                  <h5 class="card-title">${friend.name}</h5>
+                  {{/* <p class="card-text">Email: ${friend.email}</p> */}}
+                  <p class="card-text">ID: ${friend.id}</p>
+                  <a href="/profile/${friend.id}" class="btn btn-primary">Просмотр профиля</a>
+                  <hr class="dropdown-divider">
+                  <a class="btn btn-danger delete-btn" href="javascript:void(0);" data-user-id="${friend.id}">Удалить из друзей</a>
+                </div>
+              </div>
+            `;
+            usersList.appendChild(userCard);
+          });
+        });
+      });
+
+
+
+
+
+      // Добавляем обработчик события для всех кнопок удаления
+      usersList.addEventListener("click", function(e) {
+        if (e.target && e.target.classList.contains("delete-btn")) {
+          const userId = e.target.getAttribute("data-user-id");
+          console.log("click on user id:", userId);
+
+          fetch(`{{.SERVERIP}}/delete-friends/${userId}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + token,
+            },
+          })
+          .then(res => res.json())
+          .then(data => {
+            console.log(data);
+            // Можно обновить список друзей или удалить карточку друга из DOM
+            e.target.closest('.col').remove();
+          })
+          .catch(error => console.error('Ошибка удаления друга:', error));
+        }
+      });
+
+      // Дополнительная информация о пользователе
+      document.getElementById("user-name").textContent = data.name;
+      document.getElementById("user-email").textContent = data.email;
+      document.getElementById("avatar").src = data.avatar;
+      document.getElementById("about").textContent = data.about;
+        const statusBadge = document.getElementById("user-status-badge");
+        statusBadge.textContent = data.status;
+
+        switch (data.status.toLowerCase()) {
+          case "серебренный":
+            statusBadge.className = "badge bg-secondary";
+            break;
+          case "золотой":
+            statusBadge.className = "badge bg-warning text-dark";
+            break;
+          case "бриллиантовый":
+            statusBadge.className = "badge bg-info text-dark";
+            break;
+          default:
+            statusBadge.className = "badge bg-secondary";
+        }
+
+
+      // Отображение списка друзей
+      const friendsList = document.getElementById("friends-list");
+      friendsList.innerHTML = ""; // Очистим список сначала
+      data.friends.forEach(friend => {
+        const li = document.createElement("li");
+        li.className = "list-group-item";
+        li.textContent = friend.name;
+        friendsList.appendChild(li);
+      });
+    })
+    .catch(error => {
+      console.error("Ошибка запроса:", error);
+    });
+
+
+
+    // Функция для показа уведомлений
+function showNotification(message, type) {
+  const notification = document.getElementById("notification");
+  notification.textContent = message;
+  notification.className = `notification ${type}`;
+
+  setTimeout(() => {
+    notification.classList.remove("show");
+  }, 1000); // Убираем уведомление через 5 секунд
+
+  // Показываем уведомление
+  notification.classList.add("show");
+}
+
+// Добавляем деньги на баланс при клике на кнопку
+document.getElementById("addBalanceBtn").addEventListener("click", function() {
+  if (userId) {
+    const amount = 1;  // Количество, которое добавляется к балансу
+    const requestOptions = {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token,
+      },
+      body: JSON.stringify({ amount: amount })
+    };
+
+    fetch(`{{.SERVERIP}}/api/add-balance/${userId}`, requestOptions)
+      .then(response => response.json())
+      .then(data => {
+        if (!data.error) {
+          showNotification("Баланс успешно увеличен!", "success");
+        } else {
+          showNotification("Ошибка при увеличении баланса: " + data.message, "error");
+        }
+      })
+      .catch(error => {
+        console.error("Ошибка запроса:", error);
+        showNotification("Произошла ошибка при обновлении баланса.", "error");
+      });
+  }
+});
+
+
+
+// Обработка формы публикации поста
+  document.getElementById("postForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+
+    const title = document.getElementById("postTitle").value.trim();
+    const content = document.getElementById("postContent").value.trim();
+
+    if (!title || !content) {
+      showNotification("Пожалуйста, заполните все поля.", "error");
+      return;
+    }
+
+    const requestOptions = {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token,
+      },
+      body: JSON.stringify({user_id: userId, title: title, content: content })
+    };
+
+    fetch("{{.SERVERIP}}/api/send-posts", requestOptions)
+      .then(response => response.json())
+      .then(data => {
+        if (!data.error) {
+        Swal.fire({
+          title: 'Успешно!',
+          text: 'Пост успешно опубликован!.',
+          icon: 'success',
+          confirmButtonText: 'Ок'
+      });
+         loadUserPosts();
+          document.getElementById("postForm").reset();
+        } else {
+          showNotification("Ошибка публикации: " + data.message, "error");
+        }
+      })
+      .catch(error => {
+        console.error("Ошибка публикации поста:", error);
+        showNotification("Произошла ошибка при публикации.", "error");
+      });
+
+});
+
+
+
+
+function loadUserPosts() {
+  const requestOptions = {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + token,
+    },
+    body: JSON.stringify({ user_id: userId })
+  };
+
+  fetch("{{.SERVERIP}}/api/get-posts", requestOptions)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error("Ошибка загрузки постов");
+      }
+      return response.json();
+    })
+    .then(posts => {
+      const postsContainer = document.getElementById("my-posts");
+      postsContainer.innerHTML = "";
+
+      if (posts.length === 0) {
+        postsContainer.innerHTML = "<p>У вас пока нет постов.</p>";
+        return;
+      }
+
+      posts.forEach(post => {
+        const postEl = document.createElement("div");
+        postEl.className = "card mb-3";
+        postEl.innerHTML = `
+          <div class="card-body">
+            <h5 class="card-title">${post.title}</h5>
+            <p class="card-text">${post.content}</p>
+            <p class="card-text"><small class="text-muted">ID поста: ${post.id}</small></p>
+          </div>
+        `;
+        postsContainer.appendChild(postEl);
+      });
+    })
+    .catch(error => {
+      console.error("Ошибка загрузки постов:", error);
+    });
+}
+
+
+loadUserPosts();
+});
+
+
+
+
+</script>
+
+{{end}}
+

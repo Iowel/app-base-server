@@ -1,0 +1,137 @@
+{{template "base" .}}
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+{{define "title"}}
+    Пользователи
+{{end}}
+
+{{define "content"}}
+<div class="container mt-5">
+  <h2 class="text-center mb-4">Список пользователей</h2>
+  <div id="users-list" class="row row-cols-1 row-cols-md-3 g-4"></div>
+</div>
+{{end}}
+
+{{define "js"}}
+<script>
+checkAuth(); 
+
+
+
+let token = localStorage.getItem("token");
+let delBtn = document.getElementById("deleteBtn");
+let id = window.location.pathname.split("/").pop();
+
+const requestOptions = {
+    method: 'GET',
+    headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token,
+    }
+};
+
+
+
+fetch("{{.SERVERIP}}/api/get-all-users", requestOptions)
+    .then(response => response.json())
+    .then(data => {
+    console.log(data)
+        displayUsers(data);
+    })
+    .catch(error => console.error('Error fetching users:', error));
+
+
+{{/* document.addEventListener("DOMContentLoaded", function() {
+    if (id !== "{{.UserID}}") {
+        delBtn.classList.remove("d-none");
+    }
+}) */}}
+
+
+// Функция отображения пользователей
+function displayUsers(users) {
+    const usersList = document.getElementById('users-list');
+    usersList.innerHTML = '';
+
+    users.forEach(user => {
+        const cardClass = getCardClassByStatus(user.status);
+
+                const userCard = `
+                <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
+                <div class="card h-100 shadow rounded-4 ${cardClass}">
+                    <img src="${user.avatar}" class="card-img-top rounded-top" alt="Profile Picture" style="height: 200px; object-fit: cover;">
+                    <div class="card-body d-flex flex-column justify-content-between">
+                    <div class="text-center mb-3">
+                        <h5 class="card-title mb-2">${user.name}</h5>
+                        <p class="card-text text-center">
+                        Статус:
+                        <span class="badge ${
+                            user.status?.toLowerCase() === 'серебренный' ? 'bg-secondary' :
+                            user.status?.toLowerCase() === 'золотой' ? 'bg-warning text-dark' :
+                            user.status?.toLowerCase() === 'бриллиантовый' ? 'bg-info text-dark' :
+                            'bg-secondary'
+                        }">
+                            ${user.status || 'Нет статуса'}
+                        </span>
+                        </p>
+                    </div>
+                    <div class="d-flex flex-column gap-2">
+                        <a href="/profile/${user.id}" class="btn btn-outline-primary w-100">
+                        <i class="bi bi-person-circle"></i> Профиль
+                        </a>
+
+                       <a class="btn btn-danger delete-btn" href="javascript:void(0);" data-user-id="${user.id}">Добавить в друзья</a>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+
+        usersList.innerHTML += userCard;
+  });
+
+
+function getCardClassByStatus(status) {
+    switch (status?.toLowerCase()) {
+        case "серебренный":
+            return "border border-secondary bg-light";
+        case "золотой":
+            return "border border-warning bg-warning-subtle";
+        case "бриллиантовый":
+            return "border border-info bg-info-subtle";
+        default:
+            return "border border-secondary bg-light";
+    }
+}
+
+
+
+usersList.addEventListener("click", function(e) {
+    if (e.target && e.target.classList.contains("delete-btn")) {
+        const userId = e.target.getAttribute("data-user-id");
+        console.log("click on user id:", userId);
+
+        fetch(`{{.SERVERIP}}/add-friends/${userId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token,
+            },
+        })
+        .then(res => res.json())
+        .then(data => {
+            console.log(data);
+            // Скрываем кнопку после успешного добавления
+            e.target.classList.add("d-none");
+        })
+        .catch(error => console.error('Ошибка при добавлении в друзья:', error));
+    }
+});
+}
+
+
+
+</script>
+{{end}}

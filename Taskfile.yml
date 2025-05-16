@@ -1,0 +1,14 @@
+version: '3'
+
+tasks:
+  api:
+    cmd: go run ./cmd/app
+    silent: true
+  web:
+    cmd: go run ./cmd/web
+    silent: true
+  dev:
+    cmds:
+      - task api &
+      - task web
+    ignore_error: true

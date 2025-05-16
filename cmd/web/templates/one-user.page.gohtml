@@ -1,0 +1,225 @@
+{{template "base" .}}
+
+{{define "title"}}
+    Admin User
+{{end}}
+
+{{define "content"}}
+<h2 class="mt-5">Admin User</h2>
+<hr>
+
+<form method="post" action="" name="user_form" id="user_form"
+class="needs-validation" autocomplete="off" novalidate="">
+
+    <div class="mb-3">
+        <label for="name" class="form-label">Name</label>
+        <input type="text" class="form-control" id="name" name="name"
+            required="" autocomplete="name-new">
+    </div>
+
+
+    <div class="mb-3">
+        <label for="email" class="form-label">Email</label>
+        <input type="email" class="form-control" id="email" name="email"
+            required="" autocomplete="email-new">
+    </div>
+
+    <div class="mb-3">
+        <label for="password" class="form-label">Password</label>
+        <input type="password" class="form-control" id="password" name="password"
+            autocomplete="password-new">
+    </div>
+
+    <div class="mb-3">
+        <label for="verify_password" class="form-label">Verify Password</label>
+        <input type="password" class="form-control" id="verify_password" name="verify_password"
+            autocomplete="verify_password-new">
+    </div>
+
+        <div class="mb-3">
+        <label for="add_balance" class="form-label">Кол-во денег</label>
+        <input type="number" class="form-control" id="add_balance" name="add_balance"
+            autocomplete="off">
+    </div>
+
+
+    <div class="mb-3">
+        <label for="role" class="form-label">Role</label>
+        <select class="form-select" id="role" name="role" required>
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+            <option value="moderator">Moderator</option>
+        </select>
+    </div>
+
+
+    <hr>
+
+    <div class="float-start">
+        <a class="btn btn-primary" href="javascript:void(0);" onclick="val()" id="saveBtn">Save Changes</a>
+        <a class="btn btn-warning" href="/all-users" id="cancelBtn">Cancel</a>
+    </div>
+    <div class="float-end">
+        <a class="btn btn-danger d-none" href="javascript:void(0);" id="deleteBtn">Delete</a>
+    </div>
+
+    <div class="clearfix"></div>
+</form>
+
+
+{{end}}
+
+{{define "js"}}
+
+<script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+checkAuth();
+checkAuthRole();
+
+// let token = localStorage.getItem("token");   
+let id = window.location.pathname.split("/").pop(); // получаем id из url-адреса
+let delBtn = document.getElementById("deleteBtn");
+
+
+function val() {
+    let form = document.getElementById("user_form");
+    if (form.checkValidity() === false) {
+        this.event.preventDefault();
+        this.event.stopPropagation();
+        form.classList.add("was-validated");
+        return 
+    }
+    form.classList.add("was-validated");
+
+    // проверяем пароль
+    if (document.getElementById("password").value !== document.getElementById("verify_password").value) {
+        Swal.fire("Пароли не совпадают");
+        return
+    }
+
+    // отправляем данные на бэк
+let walletInput = document.getElementById("add_balance").value;
+let wallet = walletInput === "" ? null : parseInt(walletInput, 10);
+
+let payload = {
+    id: parseInt(id, 10),
+    name: document.getElementById("name").value,
+    email: document.getElementById("email").value,
+    password: document.getElementById("password").value,
+    role: document.getElementById("role").value,
+    wallet: wallet
+};
+
+
+
+    // параметры запроса
+    const requestOptions = {
+    method: 'post',
+    headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        //'Authorization': 'Bearer ' + token,
+    },
+
+    body: JSON.stringify(payload)
+  }
+
+
+    fetch('{{.SERVERIP}}/api/update-user/' + id, requestOptions)
+        .then(response => response.json())
+        .then(function(data) {
+            if (data.error) {
+                Swal.fire("Ошибка: " + data.message);
+            } else {
+                location.href = "/all-users";
+            }
+        })
+        .catch(function(error) {
+            Swal.fire("Произошла ошибка: " + error);
+        });
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+
+
+    if (id !== "0") {
+
+        if (id !== "{{.UserID}}") {
+            delBtn.classList.remove("d-none");
+        }
+
+            const requestOptions = {
+                method: 'post',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    // 'Authorization': 'Bearer ' + token,
+                }
+            };
+
+
+
+            fetch('{{.SERVERIP}}/api/get-all-users/' + id, requestOptions)
+            .then(response => response.json())
+            .then(function (data) {
+                console.log(data);
+                if (data) {
+                    document.getElementById("name").value = data.name
+                    document.getElementById("email").value = data.email
+                }
+            })
+
+        }
+    })
+
+
+
+
+delBtn.addEventListener("click", function(){
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to undo this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Delete User'
+        }).then((result) => {
+
+            if (result.isConfirmed) {
+            const requestOptions = {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    // 'Authorization': 'Bearer ' + token,
+                }
+            };
+
+
+            fetch('{{.SERVERIP}}/api/delete-user/' + id, requestOptions)
+            .then(response => response.json())
+            .then(function (data) {
+                if (data.error) {
+                    Swal.fire("Произошла ошибка: " + data.message);
+                } else {
+                    // получаем доступ к вебсокету и создаем данные которые отправляем через вебсокет
+                    let jsonData = {
+                        action: "deleteUser",
+                        user_id: parseInt(id, 10),
+                    }
+                    socket.send(JSON.stringify(jsonData));
+
+                    location.href = "/all-users";
+                }
+            })
+        }
+    })
+})
+
+
+</script>
+
+
+{{end}}

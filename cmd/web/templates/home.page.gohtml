@@ -1,0 +1,26 @@
+{{template "base" .}}
+
+{{define "title"}}
+    Home
+{{end}}
+
+{{ define "content" }}
+  <h2 class="mt-3 text-center" id="text">Hi</h2>
+
+  <img src="static/cot.jpg" id="avatar" class="avatar-img mb-3" alt="Avatar">
+{{ end }}
+
+{{ define "js" }}
+  <script>
+    let avatar = document.getElementById("avatar");
+    let text = document.getElementById("text");
+    let token = localStorage.getItem("token");
+
+    if (token === null) {
+      avatar.src = "static/nahui.jpg";  // корректно обнуляем изображение
+      text.textContent = "Not logged in";
+    } else {
+      text.textContent = "Welcome!";
+    }
+  </script>
+{{ end }}

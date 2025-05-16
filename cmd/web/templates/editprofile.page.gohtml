@@ -1,0 +1,123 @@
+{{template "base" .}}
+
+{{define "title"}}Редактировать профиль{{end}}
+
+{{define "content"}}
+<body class="bg-light">
+
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h3 class="card-title text-center mb-4">Редактировать профиль</h3>
+
+          <form id="profileForm">
+            <!-- Предпросмотр аватара -->
+            <div class="text-center">
+              <img id="avatarPreview" class="avatar-preview" src="https://via.placeholder.com/150" alt="Аватар">
+            </div>
+
+            <!-- Ссылка на аватар -->
+            <div class="mb-3">
+              <label for="avatar" class="form-label">Ссылка на изображение (аватар)</label>
+              <input type="url" class="form-control" id="avatar" name="avatar" placeholder="https://example.com/avatar.jpg">
+            </div>
+
+
+            <!-- Имя -->
+            <div class="mb-3">
+              <label for="name" class="form-label">Имя</label>
+              <input type="text" class="form-control" id="name" name="name" placeholder="Ваше имя">
+            </div>
+
+            <!-- О себе -->
+            <div class="mb-3">
+              <label for="about" class="form-label">О себе</label>
+              <textarea class="form-control" id="about" name="about" rows="4" placeholder="Расскажите о себе..."></textarea>
+            </div>
+
+            <!-- Кнопка -->
+            <div class="d-grid">
+              <button type="submit" class="btn btn-primary">Сохранить</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+{{end}}
+
+{{define "js"}}
+<script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+  const userId = {{.UserID}};
+  console.log(userId);
+  const avatarInput = document.getElementById('avatar');
+  const nameInput = document.getElementById('name');
+  const aboutInput = document.getElementById('about');
+  const avatarPreview = document.getElementById('avatarPreview');
+
+
+  avatarInput.addEventListener('input', () => {
+    const url = avatarInput.value.trim();
+    avatarPreview.src = url ? url : 'https://via.placeholder.com/150';
+  });
+
+  document.getElementById('profileForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    const avatar = avatarInput.value.trim();
+    const name = nameInput.value.trim();
+    const about = aboutInput.value.trim();
+
+    // Проверка: все поля пустые?
+    if (!avatar && !name && !about) {
+      Swal.fire({
+        title: 'Ошибка',
+        text: 'Пожалуйста, заполните хотя бы одно поле для обновления профиля.',
+        icon: 'warning',
+        confirmButtonText: 'Ок'
+      });
+      return;
+    }
+
+    const payload = {};
+    if (avatar) payload.avatar = avatar;
+    if (name) payload.name = name;
+    if (about) payload.about = about;
+
+    fetch('{{.SERVERIP}}/api/update-profile/' + userId, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    })
+    .then(response => response.json())
+    .then(function(data) {
+      Swal.fire({
+        title: 'Успешно!',
+        text: 'Профиль успешно обновлён.',
+        icon: 'success',
+        confirmButtonText: 'Ок'
+      });
+    })
+    .catch(function(error) {
+      Swal.fire({
+        title: 'Ошибка!',
+        text: 'Что-то пошло не так: ' + error.message,
+        icon: 'error',
+        confirmButtonText: 'Понятно'
+      });
+    });
+  });
+</script>
+
+{{end}}

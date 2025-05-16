@@ -1,0 +1,72 @@
+{{template "base" .}}
+
+{{define "title"}}
+    Мои заказы
+{{end}}
+
+{{define "content"}}
+
+  <div class="container mt-5">
+    <h2 class="mb-4 text-center">История заказов пользователя #{{.UserID}}</h2>
+    
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover align-middle shadow-sm bg-white">
+        <thead class="table-dark">
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Order ID</th>
+            <th scope="col">Product SKU</th>
+            <th scope="col">Статус</th>
+            <th scope="col">Причина</th>
+          </tr>
+        </thead>
+        <tbody id="orders-body">
+          <!-- Заказы появятся здесь -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+{{end}}
+
+{{define "js"}}
+<script>
+checkAuth(); 
+
+
+document.addEventListener("DOMContentLoaded", function() {
+  const userId = {{.UserID}};
+  console.log("UserID:", userId);
+
+  async function loadOrders() {
+    try {
+      const res = await fetch(`{{.SAGASERVICEAPI}}/v1/orders/user/${userId}`);
+      const data = await res.json();
+      const tbody = document.getElementById("orders-body");
+
+      data.orders.forEach((order, index) => {
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+          <th scope="row">${index + 1}</th>
+          <td>${order.OrderID}</td>
+          <td>${order.ProductSKU}</td>
+          <td>
+            <span class="badge ${order.status === 'success' ? 'bg-success' : 'bg-danger'}">
+              ${order.status}
+            </span>
+          </td>
+          <td>${order.reason}</td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+    } catch (err) {
+      console.error("Ошибка загрузки заказов:", err);
+    }
+  }
+
+  loadOrders();
+});
+</script>
+{{end}}

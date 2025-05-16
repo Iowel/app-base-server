@@ -1,0 +1,165 @@
+{{template "base" .}}
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+{{define "title"}}
+    Товары
+{{end}}
+
+{{define "content"}}
+
+
+<div class="container mt-5">
+
+  <h3 class="text-center mb-4">Продукты</h3>
+  <div id="product-list" class="d-flex justify-content-center flex-wrap gap-3"></div>
+
+  <h3 class="text-center mt-5 mb-4">Статусы</h3>
+  <div id="status-list" class="d-flex justify-content-center flex-wrap gap-3">
+    <!-- сюда будут добавляться статусы -->
+  </div>
+
+</div>
+
+
+{{end}}
+
+{{define "js"}}
+<script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+checkAuth();
+
+const userId = {{.UserID}};
+const productList = document.getElementById("product-list");
+let token = localStorage.getItem("token");
+
+// Загрузка продуктов
+fetch("{{.PRODUCTSERVICEAPI}}/v1/products")
+  .then(response => response.json())
+  .then(data => {
+    renderProducts(data.products);
+  })
+  .catch(error => {
+    console.error("Ошибка при загрузке продуктов:", error);
+    productList.innerHTML = '<div class="alert alert-danger">Не удалось загрузить продукты.</div>';
+  });
+
+function renderProducts(products) {
+  const productList = document.getElementById("product-list");
+  const statusList = document.getElementById("status-list");
+  productList.innerHTML = '';
+  statusList.innerHTML = '';
+
+  products.sort((a, b) => a.sku - b.sku);
+
+  // Разделим на продукты и статусы
+  const productCards = products.slice(0, 3);
+  const statusCards = products.slice(3);
+
+  productCards.forEach(product => {
+    productList.innerHTML += renderCard(product);
+  });
+
+  statusCards.forEach(product => {
+    statusList.innerHTML += renderCard(product);
+  });
+
+  setupBuyHandlers();
+}
+
+
+function renderCard(product) {
+  return `
+    <div class="card shadow-sm product-card position-relative" style="width: 300px;">
+      <img src="${sanitizeAvatar(product.avatar)}" class="card-img-top img-fluid" alt="Product image"
+           style="max-height: 200px; object-fit: contain;"
+           onerror="this.src='https://via.placeholder.com/200x200?text=No+Image';">
+      <div class="card-body d-flex flex-column p-3">
+        <h5 class="card-title text-center">${product.name}</h5>
+        <p class="card-text mb-1"><strong>Цена:</strong> ${product.price} ₽</p>
+        <p class="card-text product-cnt"><strong>В наличии:</strong> ${product.cnt} шт.</p>
+        <button class="btn btn-success w-100 mt-3 buy-btn" data-sku="${product.sku}">Купить</button>
+        <div class="status-overlay mt-2 d-none"></div>
+      </div>
+    </div>
+  `;
+}
+
+
+
+function setupBuyHandlers() {
+  const buyBtns = document.querySelectorAll('.buy-btn');
+
+  buyBtns.forEach(btn => {
+    btn.addEventListener('click', async function () {
+      const sku = this.getAttribute('data-sku');
+      const card = this.closest('.card');
+      const productCntElem = card.querySelector('.product-cnt');
+      const statusOverlay = card.querySelector('.status-overlay');
+
+      // Показываем статус загрузки
+      this.disabled = true;
+      this.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Оформляется...';
+
+      try {
+        const res = await fetch('{{.SAGASERVICEAPI}}/v1/orders', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify({
+            UserID: userId,
+            ProductSKU: parseInt(sku),
+          }),
+        });
+
+        if (res.ok) {
+          Swal.fire({
+            title: 'Успешно!',
+            text: 'Заказ успешно оформлен!',
+            icon: 'success',
+            confirmButtonText: 'Ок'
+          });
+
+          // Обновляем количество товара
+          const current = parseInt(productCntElem.innerText.match(/\d+/)[0]);
+          productCntElem.innerText = `В наличии: ${current - 1} шт.`;
+
+          // Показываем статус успеха
+          statusOverlay.innerHTML = '<div class="alert alert-success text-center">✔ Оплачено</div>';
+          statusOverlay.classList.remove('d-none');
+        } else {
+          const errorText = await res.text();
+          statusOverlay.innerHTML = `<div class="alert alert-danger text-center">Ошибка: ${errorText}</div>`;
+          statusOverlay.classList.remove('d-none');
+        }
+      } catch (err) {
+        statusOverlay.innerHTML = `<div class="alert alert-danger text-center">Ошибка запроса</div>`;
+        statusOverlay.classList.remove('d-none');
+      } finally {
+        this.disabled = false;
+        this.innerHTML = 'Купить';
+        setTimeout(() => statusOverlay.classList.add('d-none'), 5000);
+      }
+    });
+  });
+}
+
+function sanitizeAvatar(avatar) {
+  const cleaned = avatar.replace(/^"+|"+$/g, '');
+  return cleaned || 'https://via.placeholder.com/200x200?text=No+Image';
+}
+</script>
+
+<style>
+.status-overlay {
+  transition: opacity 0.4s;
+}
+.alert {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+</style>
+{{end}}
+

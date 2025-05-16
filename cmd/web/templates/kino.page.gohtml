@@ -1,0 +1,286 @@
+{{template "base" .}}
+
+{{define "title"}}
+    Kino
+{{end}}
+
+{{define "content"}}
+<h2>Премьеры</h2>
+<div class="container my-4">
+  <div id="film-cards" class="row g-4"></div>
+</div>
+
+<!-- Film Modal -->
+<div class="modal fade" id="filmModal" tabindex="-1" aria-labelledby="filmModalLabel" aria-hidden="true">
+
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title" id="filmModalLabel"></h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body d-flex flex-column flex-md-row">
+        <!-- Левая часть: постер -->
+        <div class="col-md-5 text-center mb-3 mb-md-0">
+          <img id="filmPoster" src="" alt="Постер" class="img-fluid rounded shadow-sm">
+        </div>
+        <!-- Правая часть: описание и шаги -->
+        <div class="col-md-7 ps-md-4 d-flex flex-column justify-content-between">
+          <div>
+            <p id="filmDescription" class="small text-muted"></p>
+            <p><strong>Год:</strong> <span id="filmYear"></span></p>
+            <p><strong>Жанры:</strong> <span id="filmGenres"></span></p>
+          </div>
+
+          <div id="ticketModalBody" class="mt-3">
+            <div id="stepSession" class="booking-step">
+                <h6 class="mb-3">Выберите сеанс:</h6>
+                <div class="schedule-list d-grid gap-3"></div>
+            </div>
+
+            <div id="stepSeats" class="booking-step d-none">
+                <h6 class="mb-3">Выберите места:</h6>
+                <div id="seatMap" class="d-grid gap-2"></div>
+                <button id="toPaymentBtn" class="btn btn-primary mt-3 d-none">Далее к оплате</button>
+                <button id="backToSessionBtn" class="btn btn-secondary mt-2">Назад к сеансам</button>
+            </div>
+
+            <div id="stepPayment" class="booking-step d-none">
+                <h6 class="mb-3">Оплата:</h6>
+                <p>Фильм: <strong id="paymentFilm"></strong></p>
+                <p>Сеанс: <strong id="paymentSession"></strong></p>
+                <p>Места: <strong id="paymentSeats"></strong></p>
+                <p>Сумма: <strong id="paymentAmount"></strong> ₽</p>
+                <button class="btn btn-success mt-3 w-100">Оплатить</button>
+                <button id="backToSeatsBtn" class="btn btn-secondary mt-2 w-100">Назад к выбору мест</button>
+
+                <div id="loadingIndicator" class="text-center d-none">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Загрузка...</span>
+                    </div>
+                    <p class="mt-2">Подождите, идет обработка...</p>
+                </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{end}}
+
+{{define "js"}}
+<script>
+let selectedSession = '';
+let currentFilm = {};
+
+function renderSeats() {
+    const seatMap = document.getElementById('seatMap');
+    seatMap.innerHTML = '';
+
+    for (let row = 1; row <= 5; row++) {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'd-flex gap-2 justify-content-center';
+
+        for (let seat = 1; seat <= 8; seat++) {
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-outline-secondary seat-btn';
+            btn.textContent = `${row}-${seat}`;
+
+            // Занятые места
+            if (Math.random() > 0.7) {  // Случайное заполнение мест для примера
+                btn.classList.add('btn-danger');
+                btn.disabled = true;
+            }
+
+            btn.addEventListener('click', () => {
+                if (btn.classList.contains('btn-danger')) return;  // Если место занято, не реагировать
+
+                btn.classList.toggle('btn-primary');
+                btn.classList.toggle('btn-outline-secondary');
+                updateSelectedSeats();
+            });
+
+            rowDiv.appendChild(btn);
+        }
+        seatMap.appendChild(rowDiv);
+    }
+}
+
+function updateSelectedSeats() {
+    const selected = Array.from(document.querySelectorAll('.seat-btn.btn-primary'))
+                           .map(btn => btn.textContent);
+    const toPaymentBtn = document.getElementById('toPaymentBtn');
+    toPaymentBtn.classList.toggle('d-none', selected.length === 0);
+}
+
+document.getElementById('toPaymentBtn').addEventListener('click', () => {
+    document.getElementById('stepSeats').classList.add('d-none');
+    document.getElementById('stepPayment').classList.remove('d-none');
+
+    const selectedSeats = Array.from(document.querySelectorAll('.seat-btn.btn-primary'))
+                               .map(btn => btn.textContent);
+    document.getElementById('paymentFilm').textContent = currentFilm.nameRu || currentFilm.nameEn;
+    document.getElementById('paymentSession').textContent = selectedSession;
+    document.getElementById('paymentSeats').textContent = selectedSeats.join(', ');
+    document.getElementById('paymentAmount').textContent = selectedSeats.length * 400;
+});
+
+fetch('https://kinopoiskapiunofficial.tech/api/v2.2/films/premieres?year=2025&month=JUNE', {
+    method: 'GET',
+    headers: {
+        'X-API-KEY': '508dd08b-cb53-40d3-a42d-2f9b1ca58c40',
+        'Content-Type': 'application/json',
+    },
+})
+.then(res => res.json())
+.then(data => {
+    const container = document.getElementById('film-cards');
+
+    data.items.forEach(film => {
+        const col = document.createElement('div');
+        col.className = 'col-md-3';
+
+        col.innerHTML = `
+            <div class="card h-100 shadow-sm film-card" data-film='${JSON.stringify(film)}' style="cursor: pointer;">
+                <img src="${film.posterUrlPreview}" class="card-img-top" alt="${film.nameRu}">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">${film.nameRu || film.nameEn}</h5>
+                    <p class="card-text"><strong>${film.year}</strong> • ${film.genres.map(g => g.genre).join(', ')}</p>
+                    <button class="btn btn-outline-primary mt-auto buy-ticket-btn">Купить билет</button>
+                </div>
+            </div>
+        `;
+        container.appendChild(col);
+
+        // Обработчик клика по карточке фильма
+        col.querySelector('.film-card').addEventListener('click', () => {
+            // Запрос на получение подробной информации о фильме
+fetch(`https://kinopoiskapiunofficial.tech/api/v2.2/films/${film.kinopoiskId}`, {
+    method: 'GET',
+    headers: {
+        'X-API-KEY': '508dd08b-cb53-40d3-a42d-2f9b1ca58c40',
+        'Content-Type': 'application/json',
+    },
+})
+.then(res => res.json())  // Парсим сразу как JSON
+.then(data => {
+    // Проверка на наличие описания
+    const description = data.description || 'Описание отсутствует.';
+    document.getElementById('filmDescription').textContent = description;
+})
+.catch(err => console.error('Ошибка при получении или обработке данных:', err));
+        });
+    });
+
+    document.querySelectorAll('.film-card').forEach(card => {
+        const film = JSON.parse(card.getAttribute('data-film'));
+
+        card.addEventListener('click', e => {
+            if (e.target.classList.contains('buy-ticket-btn')) {
+                currentFilm = film;
+                document.getElementById('filmModalLabel').textContent = film.nameRu || film.nameEn;
+                document.getElementById('filmPoster').src = film.posterUrl;
+                document.getElementById('filmDescription').textContent = film.description || 'Описание отсутствует.';
+                document.getElementById('filmYear').textContent = film.year;
+                document.getElementById('filmGenres').textContent = film.genres.map(g => g.genre).join(', ');
+
+                // Заполняем расписание (мок)
+                const scheduleHtml = `
+                    <div class="session-card d-flex justify-content-between align-items-center border rounded p-2">
+                        <div>
+                            <p class="mb-1 fw-semibold">Балтика ТРЦ "Калейдоскоп"</p>
+                            <small>Сегодня, 22:40 (2D)</small>
+                        </div>
+                        <div class="text-end">
+                            <p class="mb-1 fw-bold">400 ₽</p>
+                            <button class="btn btn-outline-primary btn-sm">Выбрать</button>
+                        </div>
+                    </div>
+                    <div class="session-card d-flex justify-content-between align-items-center border rounded p-2">
+                        <div>
+                            <p class="mb-1 fw-semibold">Балтика ТРЦ "Калейдоскоп"</p>
+                            <small>Завтра, 22:20 (2D)</small>
+                        </div>
+                        <div class="text-end">
+                            <p class="mb-1 fw-bold">600 ₽</p>
+                            <button class="btn btn-outline-primary btn-sm">Выбрать</button>
+                        </div>
+                    </div>
+                `;
+                document.querySelector('#stepSession .schedule-list').innerHTML = scheduleHtml;
+
+                document.querySelectorAll('#stepSession .session-card button').forEach((button, idx) => {
+                    button.addEventListener('click', () => {
+                        selectedSession = `Сеанс ${idx + 1}`;
+                        document.getElementById('stepSession').classList.add('d-none');
+                        document.getElementById('stepSeats').classList.remove('d-none');
+                        renderSeats();
+                    });
+                });
+
+                document.getElementById('stepSession').classList.remove('d-none');
+                document.getElementById('stepSeats').classList.add('d-none');
+                document.getElementById('stepPayment').classList.add('d-none');
+
+                const filmModal = new bootstrap.Modal(document.getElementById('filmModal'));
+                filmModal.show();
+            }
+        });
+    });
+})
+.catch(err => console.error(err));
+
+function showLoadingIndicator() {
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    loadingIndicator.classList.remove('d-none');  // Показываем индикатор
+
+    // Блокируем все кнопки на текущем шаге
+    document.querySelectorAll('.btn').forEach(btn => {
+        btn.disabled = true;
+    });
+}
+
+function hideLoadingIndicator() {
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    loadingIndicator.classList.add('d-none');  // Скрываем индикатор
+
+    // Разблокируем все кнопки на текущем шаге
+    document.querySelectorAll('.btn').forEach(btn => {
+        btn.disabled = false;
+    });
+}
+
+document.getElementById('toPaymentBtn').addEventListener('click', () => {
+    showLoadingIndicator();  // Показываем индикатор перед обработкой
+
+    setTimeout(() => {  // Мокируем время обработки (например, запрос на сервер)
+        document.getElementById('stepSeats').classList.add('d-none');
+        document.getElementById('stepPayment').classList.remove('d-none');
+
+        // Данные для оплаты
+        const selectedSeats = Array.from(document.querySelectorAll('.seat-btn.btn-primary'))
+                                   .map(btn => btn.textContent);
+        document.getElementById('paymentFilm').textContent = currentFilm.nameRu || currentFilm.nameEn;
+        document.getElementById('paymentSession').textContent = selectedSession;
+        document.getElementById('paymentSeats').textContent = selectedSeats.join(', ');
+        document.getElementById('paymentAmount').textContent = selectedSeats.length * 400;
+
+        hideLoadingIndicator();  // Скрываем индикатор после обработки
+    }, 2000);  // Здесь можно заменить на реальный запрос или другую логику
+});
+
+// Возврат с выбора мест к выбору сеанса
+document.getElementById('backToSessionBtn').addEventListener('click', () => {
+    document.getElementById('stepSeats').classList.add('d-none');
+    document.getElementById('stepSession').classList.remove('d-none');
+});
+
+// Возврат с оплаты к выбору мест
+document.getElementById('backToSeatsBtn').addEventListener('click', () => {
+    document.getElementById('stepPayment').classList.add('d-none');
+    document.getElementById('stepSeats').classList.remove('d-none');
+});
+</script>
+{{end}}

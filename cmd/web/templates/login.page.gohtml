@@ -1,0 +1,109 @@
+{{template "base" .}}
+
+{{define "title"}}
+    Login
+{{end}}
+
+{{define "content"}}
+<div class="row">
+<div class="col-md-6 offset-md-3">
+
+    <div class="alert alert-danger text-center d-none" id="login-messages"></div>
+    
+    <form action="" method="post" action="/login"
+    name="login_form" id="login_form"
+    class="d-block needs-validation charge-form"
+    autocomplete="off" novalidate="">
+
+    <h2 class="mt-2 text-center mb-3">Войти</h2>
+    <hr>
+
+    <div class="mb-3">
+        <label for="email" class="form-label">Email</label>
+        <input type="email" class="form-control" id="email" name="email"
+            required="" autocomplete="email-new">
+    </div>
+
+    <div class="mb-3">
+        <label for="password" class="form-label">Password</label>
+        <input type="password" class="form-control" id="password" name="password"
+            required="" autocomplete="password-new">
+    </div>
+
+    <hr>
+
+    <a href="javascript:void(0)" class="btn btn-primary" onclick="val()">Войти</a>
+
+
+    <p class="mt-2">
+        <small><a href="/forgot-password">Забыли пароль?</a>
+    </p>
+
+</form>
+</div>
+</div>
+{{end}}
+
+{{define "js"}}
+<script>
+
+let loginMessages = document.getElementById("login-messages");
+
+function showError(msg) {
+        loginMessages.classList.add("alert-danger");
+        loginMessages.classList.remove("alert-success");
+        loginMessages.classList.remove("d-none");
+        loginMessages.innerText = msg;
+    }
+
+    function showSuccess() {
+        loginMessages.classList.remove("alert-danger");
+        loginMessages.classList.add("alert-success");
+        loginMessages.classList.remove("d-none");
+        loginMessages.innerText = "Вход выполнен успешно";
+    }
+
+function val() {
+    let form = document.getElementById("login_form");
+    if (form.checkValidity() === false) {
+        this.event.preventDefault();
+        this.event.stopPropagation();
+        form.classList.add("was-validated");
+        return;
+    }
+    form.classList.add("was-validated");
+
+    let payload = {
+        email: document.getElementById("email").value,
+        password: document.getElementById("password").value,
+    }
+
+    const requestOptions = {
+        method: 'post',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload),
+    }
+
+fetch("{{.AUTHSERVICEAPI}}/v1/login_user", requestOptions)
+    .then(response => response.json())
+    .then(data => {
+        console.log(data);
+
+        // Проверяем, есть ли поле error
+        if ('error' in data && data.error === true) {  // Если поле error есть и оно true, то ошибка
+            showError(data.message);  // Показываем ошибку
+        } else {
+            localStorage.setItem('token', data.token.plaintext);
+            localStorage.setItem('token_expiry', data.token.expiry);
+            showSuccess();
+            document.getElementById("login_form").submit();
+            // location.href = "/home";
+        }
+    })
+}
+</script>
+{{end}}
+

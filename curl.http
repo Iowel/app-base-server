@@ -1,0 +1,93 @@
+curl -X POST http://localhost:8081/auth/register
+  -H "Content-Type: application/json" \
+  -d '{
+        "email": "awsw2swad",
+        "password": "12345",
+        "name": "John"
+      }'
+
+###
+curl -X POST http://localhost:8081/api/authenticate
+  -H "Content-Type: application/json" \
+  -d '{
+        "email": "John1.ru",
+        "password": "12345"
+      }'
+
+
+###
+curl -X POST http://localhost:8081/api/is-authenticated \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer VRRTRNQ4ZAX37QL6GDWPMLQK5U" \
+
+
+
+
+###
+curl -X GET http://localhost:8081/api/admin/test \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer JHPW5APSL5EUHP63XC7IQFDUS4" \
+
+
+
+###
+curl -X GET http://localhost:8081/api/get-all-users
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOBSMAR7KJPTYMGCDASIZIVB5E" \
+
+
+
+###
+curl -X GET http://localhost:8081/add-friends/1
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer LM3ZWGVDJT7G5RHEP77WHOEYGA" \
+
+
+
+###
+curl -X GET http://localhost:8081/api/get-profile \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer 7WJHWENDJXY4HB4SWXSTQPWXM4" \
+  
+
+###
+curl -X POST http://localhost:8081/api/get-all-users/4
+
+
+
+###
+curl -X GET http://localhost:8081/api/all-posts
+
+
+###
+curl -X GET http://localhost:8087/v1/orders/user/1
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer JFZOLQG2WPJUIV7P6OHXXVRKEM" \
+
+
+###
+curl -X GET http://localhost:8081/api/update-user \
+  -H "Content-Type: application/json" \
+  -d '{
+        "id": 3,
+        "email": "aaqqq@m.r",
+        "password": "54321",
+        "name": "FOX"
+      }'
+
+
+###
+curl -X GET http://localhost:8081/api/delete-user/1
+
+
+
+###
+curl -X POST  http://localhost:8081/api/update-user/0 \
+  -H "Content-Type: application/json" \
+  -d '{
+        "email": "test@m.r",
+        "password": "12345",
+        "name": "test"
+      }'
+
+
