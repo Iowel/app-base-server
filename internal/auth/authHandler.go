@@ -29,24 +29,26 @@ func NewAuthHandler(router *http.ServeMux, deps AuthHandlerDeps) {
 	}
 
 	router.HandleFunc("GET /api/get-profile", handler.GetProfile())
-
 	router.HandleFunc("POST /api/update-profile/{id}", handler.UpdateProfile())
 
-	router.HandleFunc("GET /api/get_balance/{id}", handler.GetBalance())
 
+
+	router.HandleFunc("GET /api/get_balance/{id}", handler.GetBalance())
 	router.HandleFunc("POST /api/add-balance/{id}", handler.AddBalance())
 
+
+
 	router.Handle("GET /api/get-all-users", Auth(handler.AllUsers(), *deps.AuthService))
-
 	router.HandleFunc("POST /api/get-all-users", handler.AllUsers())
-
 	router.HandleFunc("POST /api/get-all-users/{id}", handler.OneUser())
+	router.HandleFunc("POST /api/update-user/{id}", handler.UpdateUser())
+	router.HandleFunc("DELETE /api/delete-user/{id}", handler.DeleteUser())
+
+
 
 	router.HandleFunc("POST /api/forgot-password", handler.SendPasswordResetEmail())
 	router.HandleFunc("POST /api/reset-password", handler.ResetPassword())
 
-	router.HandleFunc("POST /api/update-user/{id}", handler.UpdateUser())
-	router.HandleFunc("DELETE /api/delete-user/{id}", handler.DeleteUser())
 
 	router.Handle("GET /add-friends/{id}", Auth(handler.AddFriends(), *deps.AuthService))
 	router.HandleFunc("GET /friends/{id}", handler.GetFriends())
@@ -63,12 +65,6 @@ func (h *authHandler) GetProfile() http.HandlerFunc {
 	}
 }
 
-type EditProfileRequest struct {
-	Name   string `json:"name"`
-	Avatar string `json:"avatar"`
-	About  string `json:"about"`
-	Role   string `json:"role"`
-}
 
 func (h *authHandler) UpdateProfile() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -205,6 +201,20 @@ func (h *authHandler) AddBalance() http.HandlerFunc {
 	}
 }
 
+
+func (h *authHandler) AllUsers() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		users, err := h.AuthService.GetAllUsers()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		response.Json(w, users, http.StatusOK)
+	}
+}
+
+
 func (h *authHandler) GetFriends() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
@@ -247,17 +257,7 @@ func (h *authHandler) DeleteFriends() http.HandlerFunc {
 	}
 }
 
-func (h *authHandler) AllUsers() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		users, err := h.AuthService.GetAllUsers()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
 
-		response.Json(w, users, http.StatusOK)
-	}
-}
 
 func (h *authHandler) AddFriends() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

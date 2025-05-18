@@ -15,3 +15,10 @@ type ResetPasswordResponse struct {
 	Error   bool   `json:"error"`
 	Message string `json:"message"`
 }
+
+type EditProfileRequest struct {
+	Name   string `json:"name"`
+	Avatar string `json:"avatar"`
+	About  string `json:"about"`
+	Role   string `json:"role"`
+}

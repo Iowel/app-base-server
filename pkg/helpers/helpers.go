@@ -32,7 +32,7 @@ func WriteJson(w http.ResponseWriter, status int, data interface{}, headers ...h
 
 // Читаем любой JSON из тела запроса 
 func ReadJSON(w http.ResponseWriter, r *http.Request, data interface{}) error {
-	// Максимальное кол-во байт которое можем принять
+	// Максимальное кол-во байт которое можем распарсить
 	maxBytes := 1048576
 	r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytes))
 

@@ -27,7 +27,7 @@ func NewMailer(conf *configs.Config) *Mailer {
 //go:embed templates
 var emailTemplateFS embed.FS
 
-// sendMail — отправляет email по шаблону, с данными и заданной темой
+// отправляет email по шаблону, с данными и заданной темой
 func (m *Mailer) SendMail(from, to, subject, tmpl string, data interface{}) error {
 	// Формируем путь к HTML-шаблону
 	templateToRender := fmt.Sprintf("templates/%s.html.tmpl", tmpl)
@@ -35,8 +35,8 @@ func (m *Mailer) SendMail(from, to, subject, tmpl string, data interface{}) erro
 	// парсим HTML-шаблон из встроенной файловой системы
 	t, err := template.New("email-html").ParseFS(emailTemplateFS, templateToRender)
 	if err != nil {
-		log.Println(err) // Логируем ошибку
-		return err       // Возвращаем ошибку при неудачной подстановке данных
+		log.Println(err) 
+		return err 
 	}
 
 	// буфер для хранения отрендеренного HTML-шаблона
