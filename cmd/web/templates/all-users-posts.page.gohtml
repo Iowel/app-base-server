@@ -27,6 +27,8 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
       }
 
+      data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
       data.forEach(post => {
         const el = document.createElement("div");
         el.className = "col";
@@ -38,6 +40,7 @@ document.addEventListener("DOMContentLoaded", function () {
                   <p class="card-text">${post.content}</p>
                   <p class="card-text">
                     <small class="text-muted">Автор: ${post.user_name}</small><br>
+                    <small class="text-muted">Создан: ${new Date(post.created_at).toLocaleString()}</small>
                   </p>
                   <a href="/profile/${post.user_id}" class="btn btn-sm btn-outline-primary">Посмотреть профиль</a>
                 </div>
