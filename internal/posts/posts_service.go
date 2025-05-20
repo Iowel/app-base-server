@@ -30,12 +30,13 @@ func (p *PostService) CreatePost(postInput *Post) error {
 		return err
 	}
 
-
 	var cacheUser = &Post{
-		ID:      post.ID,
-		UserID:  post.UserID,
-		Title:   post.Title,
-		Content: post.Content,
+		ID:        post.ID,
+		UserID:    post.UserID,
+		Title:     post.Title,
+		Content:   post.Content,
+		CreatedAt: post.CreatedAt,
+		UpdatedAt: post.UpdatedAt,
 	}
 
 	idStr := "post:" + strconv.Itoa(cacheUser.ID)
@@ -94,4 +95,3 @@ func (p *PostService) GetPostsAllUsers() ([]*Post, error) {
 	return posts, nil
 
 }
-
