@@ -38,10 +38,10 @@ func (p *ProfileRepository) GetProfile(id int) (*Profile, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	query := `select user_id, avatar, about, friends, status, created_at, updated_at from profiles where user_id = $1`
+	query := `select user_id, avatar, about, friends, status, wallet, created_at, updated_at from profiles where user_id = $1`
 
 	var profile Profile
-	err := p.Db.Pool.QueryRow(ctx, query, id).Scan(&profile.UserID, &profile.Avatar, &profile.About, &profile.Friends, &profile.Status, &profile.CreatedAt, &profile.UpdatedAt)
+	err := p.Db.Pool.QueryRow(ctx, query, id).Scan(&profile.UserID, &profile.Avatar, &profile.About, &profile.Friends, &profile.Status, &profile.Wallet, &profile.CreatedAt, &profile.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("error find profile by id: %w", err)
 	}

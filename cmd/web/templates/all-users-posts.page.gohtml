@@ -30,19 +30,19 @@ document.addEventListener("DOMContentLoaded", function () {
       data.forEach(post => {
         const el = document.createElement("div");
         el.className = "col";
-el.innerHTML = `
-  <div class="card shadow-sm h-100">
-    <div class="card-body text-center">
-      <img src="${post.avatar}" class="rounded-circle mb-3" style="width: 80px; height: 80px;" alt="Avatar">
-      <h5 class="card-title">${post.title}</h5>
-      <p class="card-text">${post.content}</p>
-      <p class="card-text">
-        <small class="text-muted">Автор: ${post.user_name}</small><br>
-      </p>
-      <a href="/profile/${post.user_id}" class="btn btn-sm btn-outline-primary">Посмотреть профиль</a>
-    </div>
-  </div>
-`;
+            el.innerHTML = `
+              <div class="card shadow-sm h-100">
+                <div class="card-body text-center">
+                  <img src="${post.avatar}" class="rounded-circle mb-3" style="width: 80px; height: 80px;" alt="Avatar">
+                  <h5 class="card-title">${post.title}</h5>
+                  <p class="card-text">${post.content}</p>
+                  <p class="card-text">
+                    <small class="text-muted">Автор: ${post.user_name}</small><br>
+                  </p>
+                  <a href="/profile/${post.user_id}" class="btn btn-sm btn-outline-primary">Посмотреть профиль</a>
+                </div>
+              </div>
+            `;
         container.appendChild(el);
       });
     })
@@ -50,5 +50,6 @@ el.innerHTML = `
       console.error("Ошибка при загрузке постов:", err);
     });
 });
+
 </script>
 {{end}}

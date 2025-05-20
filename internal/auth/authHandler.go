@@ -1,15 +1,17 @@
 package auth
 
 import (
-	"github.com/Iowel/app-base-server/configs"
-	"github.com/Iowel/app-base-server/internal/user"
 	"log"
 	"strconv"
 
-	"github.com/Iowel/app-base-server/pkg/response"
+	"github.com/Iowel/app-base-server/configs"
+	"github.com/Iowel/app-base-server/internal/user"
+
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/Iowel/app-base-server/pkg/response"
 )
 
 type AuthHandlerDeps struct {
@@ -31,24 +33,17 @@ func NewAuthHandler(router *http.ServeMux, deps AuthHandlerDeps) {
 	router.HandleFunc("GET /api/get-profile", handler.GetProfile())
 	router.HandleFunc("POST /api/update-profile/{id}", handler.UpdateProfile())
 
-
-
 	router.HandleFunc("GET /api/get_balance/{id}", handler.GetBalance())
 	router.HandleFunc("POST /api/add-balance/{id}", handler.AddBalance())
 
-
-
 	router.Handle("GET /api/get-all-users", Auth(handler.AllUsers(), *deps.AuthService))
-	router.HandleFunc("POST /api/get-all-users", handler.AllUsers())
+	router.HandleFunc("POST /api/get-all-users", handler.AllUsersForAdmin())
 	router.HandleFunc("POST /api/get-all-users/{id}", handler.OneUser())
 	router.HandleFunc("POST /api/update-user/{id}", handler.UpdateUser())
 	router.HandleFunc("DELETE /api/delete-user/{id}", handler.DeleteUser())
 
-
-
 	router.HandleFunc("POST /api/forgot-password", handler.SendPasswordResetEmail())
 	router.HandleFunc("POST /api/reset-password", handler.ResetPassword())
-
 
 	router.Handle("GET /add-friends/{id}", Auth(handler.AddFriends(), *deps.AuthService))
 	router.HandleFunc("GET /friends/{id}", handler.GetFriends())
@@ -65,7 +60,6 @@ func (h *authHandler) GetProfile() http.HandlerFunc {
 	}
 }
 
-
 func (h *authHandler) UpdateProfile() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, err := strconv.Atoi(r.PathValue("id"))
@@ -81,16 +75,12 @@ func (h *authHandler) UpdateProfile() http.HandlerFunc {
 			return
 		}
 
-		log.Printf("UPDATE PROFILE %+v\n", reqUser)
-
 		// Получаем текущие данные пользователя и профиля
 		existUser, err := h.AuthService.GetOneUser(userID)
 		if err != nil {
 			http.Error(w, "User not found: "+err.Error(), http.StatusNotFound)
 			return
 		}
-
-		log.Printf("EXIST USER %+v\n", existUser)
 
 		existProfile, err := h.AuthService.GetProfileByID(userID)
 		if err != nil {
@@ -130,20 +120,19 @@ func (h *authHandler) UpdateProfile() http.HandlerFunc {
 			return
 		}
 
+		// update redis cache
+		newProfile, _ := h.AuthService.GetProfileByID(existUser.ID)
+		newUser, _ := h.AuthService.GetOneUser(existUser.ID)
+
+		h.AuthService.UpdateProfileCache(newProfile, newUser)
+
+		// send response
 		var payload struct {
 			Error   bool   `json:"error"`
 			Message string `json:"message"`
 		}
-
 		payload.Error = false
 		payload.Message = "success"
-
-		existUsers, err := h.AuthService.GetOneUser(userID)
-		if err != nil {
-			http.Error(w, "User not found: "+err.Error(), http.StatusNotFound)
-			return
-		}
-		log.Printf("AFTER UPDATE PROFILE %+v\n", existUsers)
 
 		response.Json(w, payload, http.StatusOK)
 	}
@@ -194,13 +183,18 @@ func (h *authHandler) AddBalance() http.HandlerFunc {
 			return
 		}
 
+		// update redis cache
+		newProfile, _ := h.AuthService.GetProfileByID(idd)
+		newUser, _ := h.AuthService.GetOneUser(idd)
+
+		h.AuthService.UpdateProfileCache(newProfile, newUser)
+
 		payload.Error = false
 		payload.Message = "success"
 		response.Json(w, payload, http.StatusOK)
 
 	}
 }
-
 
 func (h *authHandler) AllUsers() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -214,6 +208,17 @@ func (h *authHandler) AllUsers() http.HandlerFunc {
 	}
 }
 
+func (h *authHandler) AllUsersForAdmin() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		users, err := h.AuthService.GetAllUsersForAdmin()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		response.Json(w, users, http.StatusOK)
+	}
+}
 
 func (h *authHandler) GetFriends() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -256,8 +261,6 @@ func (h *authHandler) DeleteFriends() http.HandlerFunc {
 		response.Json(w, payload, http.StatusOK)
 	}
 }
-
-
 
 func (h *authHandler) AddFriends() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -370,6 +373,12 @@ func (h *authHandler) UpdateUser() http.HandlerFunc {
 				}
 			}
 
+			// update redis cache
+			newProfile, _ := h.AuthService.GetProfileByID(existUser.ID)
+			newUser, _ := h.AuthService.GetOneUser(existUser.ID)
+
+			h.AuthService.UpdateProfileCache(newProfile, newUser)
+
 		} else {
 
 			var wallet int
@@ -378,11 +387,14 @@ func (h *authHandler) UpdateUser() http.HandlerFunc {
 			}
 
 			// логика для создания нового юзера
-			err := h.AuthService.AddUser(&user, user.Password, wallet)
+			_, _, err := h.AuthService.AddUser(&user, user.Password, wallet)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
+
+			// update redis cache
+			// h.AuthService.UpdateProfileCache(newProfile, newUser)
 		}
 
 		var payload struct {
@@ -403,6 +415,7 @@ func (h *authHandler) DeleteUser() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+
 		var payload struct {
 			Error   bool   `json:"error"`
 			Message string `json:"message"`
@@ -490,7 +503,7 @@ func (h *authHandler) ResetPassword() http.HandlerFunc {
 			return
 		}
 
-		err = h.AuthService.ResetPassword(w, payload.Email, payload.Password)
+		user, err := h.AuthService.ResetPassword(w, payload.Email, payload.Password)
 		if err != nil {
 			var resp struct {
 				Error   bool   `json:"error"`
@@ -502,6 +515,12 @@ func (h *authHandler) ResetPassword() http.HandlerFunc {
 			response.Json(w, resp, http.StatusOK)
 			return
 		}
+
+		//update redis cache
+		newProfile, _ := h.AuthService.GetProfileByID(user.ID)
+		newUser, _ := h.AuthService.GetOneUser(user.ID)
+
+		h.AuthService.UpdateProfileCache(newProfile, newUser)
 
 		var resp struct {
 			Error   bool   `json:"error"`

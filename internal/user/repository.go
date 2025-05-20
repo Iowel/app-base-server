@@ -1,12 +1,13 @@
 package user
 
 import (
-	"github.com/Iowel/app-base-server/internal/profiles"
-	"github.com/Iowel/app-base-server/pkg/db"
 	"context"
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/Iowel/app-base-server/internal/profiles"
+	"github.com/Iowel/app-base-server/pkg/db"
 
 	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -23,8 +24,6 @@ func NewUserReposotory(db *db.Db, profile *profiles.ProfileRepository) *UserRepo
 		Profile: profile,
 	}
 }
-
-
 
 func (u *UserRepository) FindByEmail(email string) (*User, error) {
 	query := `SELECT id, email, name, password FROM users WHERE email = $1`
@@ -84,11 +83,10 @@ func (u *UserRepository) AddBalance(userID int64, amount int64) error {
 		return fmt.Errorf("failed to update balance: %v", err)
 	}
 
-
 	return nil
 }
 
-func (u *UserRepository) GetAllUsers() ([]*User, error) {
+func (u *UserRepository) GetAllUsers() ([]*UserCache, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -104,9 +102,9 @@ func (u *UserRepository) GetAllUsers() ([]*User, error) {
 	}
 	defer rows.Close()
 
-	var users []*User
+	var users []*UserCache
 	for rows.Next() {
-		var user User
+		var user UserCache
 		err := rows.Scan(
 			&user.ID,
 			&user.Email,
@@ -195,20 +193,21 @@ func (u *UserRepository) GetUserByID(id int) (*User, error) {
 	return &user, nil
 }
 
-func (u *UserRepository) AddUser(user *User, hash string, wallet int) error {
+func (u *UserRepository) AddUser(user *User, hash string, wallet int) (*User, *profiles.Profile, error) {
 	query := `
 		INSERT INTO users (email, password, name, role)
 		VALUES ($1, $2, $3, $4)
-		RETURNING id, created_at, updated_at
+		RETURNING id, password, created_at, updated_at
 	`
 
 	err := u.Db.Pool.QueryRow(context.Background(), query, user.Email, hash, user.Name, user.Role).Scan(
 		&user.ID,
+		&user.Password,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to create user: %v", err)
+		return nil, nil, fmt.Errorf("failed to create user: %v", err)
 	}
 
 	updateQuery := `
@@ -221,7 +220,7 @@ func (u *UserRepository) AddUser(user *User, hash string, wallet int) error {
 
 	_, err = u.Db.Pool.Exec(context.Background(), updateQuery, user.ID)
 	if err != nil {
-		return fmt.Errorf("failed to update is_email_verified: %v", err)
+		return nil, nil, fmt.Errorf("failed to update is_email_verified: %v", err)
 	}
 
 	// Создаем профиль
@@ -238,35 +237,44 @@ func (u *UserRepository) AddUser(user *User, hash string, wallet int) error {
 
 	err = u.Profile.Create(profile)
 	if err != nil {
-		return fmt.Errorf("failed to create profile: %v", err)
+		return nil, nil, fmt.Errorf("failed to create profile: %v", err)
 	}
 
-	return nil
+	return user, profile, nil
 }
 
-func (u *UserRepository) UpdateUser(user *User) error {
+func (u *UserRepository) UpdateUser(user *User) (*User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	query := `
-		update users
-		set
+		UPDATE
+			users
+		SET
 			email = $2,
 			name = $3,
 			password = $4,
 			role = $5,
 			avatar = $6
-		where
+		WHERE
 			id = $1
+		RETURNING id, email, name, password, role, avatar 
 	`
 
-	_, err := u.Db.Pool.Exec(ctx, query, user.ID, user.Email, user.Name, user.Password, user.Role, user.Avatar)
+	err := u.Db.Pool.QueryRow(ctx, query, user.ID, user.Email, user.Name, user.Password, user.Role, user.Avatar).Scan(
+		&user.ID,
+		&user.Email,
+		&user.Name,
+		&user.Password,
+		&user.Role,
+		&user.Avatar,
+	)
 
 	if err != nil {
-		return fmt.Errorf("failed to update user: %w", err)
+		return nil, fmt.Errorf("failed to update user: %w", err)
 	}
 
-	return nil
+	return user, nil
 }
 
 func (u *UserRepository) UpdateUserOne(user *User) error {
@@ -366,14 +374,14 @@ func (u *UserRepository) GetProfileByID(id int) (*profiles.Profile, error) {
 	defer cancel()
 
 	query := `
-	select id, avatar, about from profiles where user_id = $1
+	select id, avatar, status, wallet, about from profiles where user_id = $1
 	`
 
 	row := u.Db.Pool.QueryRow(ctx, query, id)
 
 	var profile profiles.Profile
 
-	err := row.Scan(&profile.ID, &profile.Avatar, &profile.About)
+	err := row.Scan(&profile.ID, &profile.Avatar, &profile.Status, &profile.Wallet, &profile.About)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, fmt.Errorf("profile with id %d not found", id)
@@ -384,7 +392,7 @@ func (u *UserRepository) GetProfileByID(id int) (*profiles.Profile, error) {
 	return &profile, nil
 }
 
-func (u *UserRepository) UpdatePrifile(id int, profile *profiles.Profile) error {
+func (u *UserRepository) UpdatePrifile(id int, profile *profiles.Profile) (*profiles.Profile, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -400,10 +408,10 @@ func (u *UserRepository) UpdatePrifile(id int, profile *profiles.Profile) error 
 	_, err := u.Db.Pool.Exec(ctx, query, id, profile.Avatar, profile.About)
 
 	if err != nil {
-		return fmt.Errorf("failed to update profile: %w", err)
+		return nil, fmt.Errorf("failed to update profile: %w", err)
 	}
 
-	return nil
+	return profile, nil
 }
 
 func (u *UserRepository) GetUserStatus(userID int64) (string, error) {

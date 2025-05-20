@@ -1,19 +1,22 @@
 package auth
 
 import (
-	"github.com/Iowel/app-base-server/configs"
-	"github.com/Iowel/app-base-server/internal/profiles"
-	"github.com/Iowel/app-base-server/internal/token"
-	"github.com/Iowel/app-base-server/internal/user"
-	"github.com/Iowel/app-base-server/pkg/encryption"
-	"github.com/Iowel/app-base-server/pkg/mail"
-	"github.com/Iowel/app-base-server/pkg/mailer"
-	"github.com/Iowel/app-base-server/pkg/urlsigner"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
+
+	"github.com/Iowel/app-base-server/configs"
+	"github.com/Iowel/app-base-server/internal/profiles"
+	"github.com/Iowel/app-base-server/internal/token"
+	"github.com/Iowel/app-base-server/internal/user"
+	"github.com/Iowel/app-base-server/pkg/cache"
+	"github.com/Iowel/app-base-server/pkg/encryption"
+	"github.com/Iowel/app-base-server/pkg/mail"
+	"github.com/Iowel/app-base-server/pkg/mailer"
+	"github.com/Iowel/app-base-server/pkg/urlsigner"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -25,6 +28,7 @@ type AuthServiceDeps struct {
 	Mailer   *mailer.Mailer
 	Config   *configs.Config
 	Gmailer  mail.EmailSender
+	Cache    cache.IPostCache
 }
 
 type AuthService struct {
@@ -34,19 +38,45 @@ type AuthService struct {
 	*mailer.Mailer
 	Gmailer mail.EmailSender
 	*configs.Config
+	Cache cache.IPostCache
 }
 
 func NewAuthService(deps AuthServiceDeps) *AuthService {
-	return &AuthService{UserRepo: deps.UserRepo, Token: deps.Token, Profile: deps.Profile, Mailer: deps.Mailer, Config: deps.Config, Gmailer: deps.Gmailer}
+	return &AuthService{UserRepo: deps.UserRepo, Token: deps.Token, Profile: deps.Profile, Mailer: deps.Mailer, Config: deps.Config, Gmailer: deps.Gmailer, Cache: deps.Cache}
 }
 
-func (s *AuthService) GetAllUsers() ([]*user.User, error) {
+func (s *AuthService) GetAllUsers() ([]*user.UserCache, error) {
+
+	allUsers := s.Cache.GetAll()
+
+	if len(allUsers) == 0 {
+		users, err := s.UserRepo.GetAllUsers()
+		if err != nil {
+			return nil, errors.New(ErrGetAllUsers)
+		}
+
+		// кжшируем каждого юзверя из базы
+		for _, user := range users {
+			key := "user:" + strconv.Itoa(user.ID)
+			s.Cache.Set(key, user)
+		}
+
+		allUsers = users
+	}
+
+	return allUsers, nil
+
+}
+
+func (s *AuthService) GetAllUsersForAdmin() ([]*user.UserCache, error) {
+
 	users, err := s.UserRepo.GetAllUsers()
 	if err != nil {
 		return nil, errors.New(ErrGetAllUsers)
 	}
 
 	return users, nil
+
 }
 
 func (s *AuthService) GetUserBalance(id int) (int, error) {
@@ -67,20 +97,20 @@ func (s *AuthService) AddUserBalance(id int64, amount int64) error {
 	return nil
 }
 
-func (s *AuthService) AddUser(user *user.User, password string, wallet int) error {
+func (s *AuthService) AddUser(user *user.User, password string, wallet int) (*user.User, *profiles.Profile, error) {
 
 	// create password
 	newHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	err = s.UserRepo.AddUser(user, string(newHash), wallet)
+	newUser, newProfile, err := s.UserRepo.AddUser(user, string(newHash), wallet)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	return nil
+	return newUser, newProfile, nil
 }
 
 func (s *AuthService) AuthenticateToken(r *http.Request) (*user.User, error) {
@@ -138,7 +168,6 @@ func (s *AuthService) GetProfiles(r *http.Request) (*ProfileResponse, error) {
 	return &resp, nil
 }
 
-
 func (s *AuthService) ForgotPassword(w http.ResponseWriter, email string) error {
 
 	// verify user exist
@@ -178,7 +207,7 @@ func (s *AuthService) ForgotPassword(w http.ResponseWriter, email string) error 
 	return nil
 }
 
-func (s *AuthService) ResetPassword(w http.ResponseWriter, email, password string) error {
+func (s *AuthService) ResetPassword(w http.ResponseWriter, email, password string) (*user.User, error) {
 
 	encryptor := encryption.Encryption{
 		Key: []byte(s.Config.CryptLink.Secretkey),
@@ -186,25 +215,25 @@ func (s *AuthService) ResetPassword(w http.ResponseWriter, email, password strin
 
 	realEmail, err := encryptor.Decrypt(email)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	user, err := s.UserRepo.FindByEmail(realEmail)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	newHash, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = s.UserRepo.UpdatePasswordForUser(user, string(newHash))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return user, nil
 }
 
 func (s *AuthService) UpdatePassword(user *user.User, password string) error {
@@ -241,21 +270,45 @@ func (s *AuthService) GetOneUser(id int) (*user.User, error) {
 	return user, nil
 }
 
-func (s *AuthService) UpdateUser(user *user.User) error {
+func (s *AuthService) UpdateUser(inputUser *user.User) error {
 
 	// обновляем
-	err := s.UserRepo.UpdateUser(user)
+	_, err := s.UserRepo.UpdateUser(inputUser)
 	if err != nil {
 		return err
 	}
 
+	// profile, err := s.Profile.GetProfile(newUser.ID)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// var cacheUser = &user.UserCache{
+	// 	ID:        newUser.ID,
+	// 	Email:     newUser.Email,
+	// 	Password:  newUser.Password,
+	// 	Name:      newUser.Name,
+	// 	Token:     newUser.Token,
+	// 	Role:      newUser.Role,
+	// 	Avatar:    newUser.Avatar,
+	// 	Status:    profile.Status,
+	// 	Wallet:    profile.Wallet,
+	// 	CreatedAt: newUser.CreatedAt,
+	// 	UpdatedAt: newUser.UpdatedAt,
+	// }
+
+	// log.Printf("UPDATEEEEEEEEEEEEEEEE %+v\n", cacheUser)
+
+	// idStr := "user:" + strconv.Itoa(newUser.ID)
+	// s.Cache.Set(idStr, cacheUser)
+
 	return nil
 }
 
-func (s *AuthService) UpdateUserOne(user *user.User) error {
+func (s *AuthService) UpdateUserOne(userInput *user.User) error {
 
 	// обновляем
-	err := s.UserRepo.UpdateUserOne(user)
+	err := s.UserRepo.UpdateUserOne(userInput)
 	if err != nil {
 		return err
 	}
@@ -268,6 +321,10 @@ func (s *AuthService) DeleteUser(id int) error {
 	if err != nil {
 		return err
 	}
+
+	// update redis cache
+	idStr := "user:" + strconv.Itoa(id)
+	s.Cache.Delete(idStr)
 
 	return nil
 }
@@ -306,7 +363,7 @@ func (s *AuthService) GetProfileByID(id int) (*profiles.Profile, error) {
 func (s *AuthService) UpdateProfile(id int, profile *profiles.Profile) error {
 
 	// обновляем
-	err := s.UserRepo.UpdatePrifile(id, profile)
+	_, err := s.UserRepo.UpdatePrifile(id, profile)
 	if err != nil {
 		return err
 	}
@@ -319,6 +376,27 @@ func (s *AuthService) UpdateWalletProfiles(id int, wallet int) error {
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (s *AuthService) UpdateProfileCache(prof *profiles.Profile, userInput *user.User) error {
+
+	var cacheUser = &user.UserCache{
+		ID:        userInput.ID,
+		Email:     userInput.Email,
+		Password:  userInput.Password,
+		Name:      userInput.Name,
+		Role:      userInput.Role,
+		Avatar:    prof.Avatar,
+		Status:    prof.Status,
+		Wallet:    prof.Wallet,
+		CreatedAt: userInput.CreatedAt,
+		UpdatedAt: userInput.UpdatedAt,
+	}
+
+	idStr := "user:" + strconv.Itoa(userInput.ID)
+	s.Cache.Set(idStr, cacheUser)
 
 	return nil
 }

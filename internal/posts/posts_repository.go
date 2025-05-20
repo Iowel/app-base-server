@@ -1,10 +1,11 @@
 package posts
 
 import (
-	"github.com/Iowel/app-base-server/pkg/db"
 	"context"
 	"fmt"
 	"time"
+
+	"github.com/Iowel/app-base-server/pkg/db"
 )
 
 type PostRepository struct {
@@ -17,22 +18,29 @@ func NewPostRepository(db *db.Db) *PostRepository {
 	}
 }
 
-func (p *PostRepository) Create(post *Post) error {
+func (p *PostRepository) Create(post *Post) (*Post, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
 	query := `
 		INSERT INTO posts (user_id, title, content)
 		VALUES ($1, $2, $3)
-		RETURNING id, created_at, updated_at
+		RETURNING id, user_id, created_at, updated_at
 	`
 
-	err := p.Db.Pool.QueryRow(context.Background(), query,
+	err := p.Db.Pool.QueryRow(ctx, query,
 		post.UserID, post.Title, post.Content,
-	).Scan(&post.UserID, &post.CreatedAt, &post.UpdatedAt)
-
+	).Scan(
+		&post.ID,
+		&post.UserID,
+		&post.CreatedAt,
+		&post.UpdatedAt,
+	)
 	if err != nil {
-		return fmt.Errorf("failed to create post: %v", err)
+		return nil, fmt.Errorf("failed to create post: %v", err)
 	}
 
-	return nil
+	return post, nil
 }
 
 func (p *PostRepository) GetByUser(userID int) ([]*Post, error) {
@@ -62,7 +70,7 @@ func (p *PostRepository) GetByUser(userID int) ([]*Post, error) {
 	return posts, nil
 }
 
-func (p *PostRepository) GetAllPosts() ([]Post, error) {
+func (p *PostRepository) GetAllPosts() ([]*Post, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -81,7 +89,7 @@ func (p *PostRepository) GetAllPosts() ([]Post, error) {
 	}
 	defer rows.Close()
 
-	var posts []Post
+	var posts []*Post
 
 	for rows.Next() {
 
@@ -90,7 +98,7 @@ func (p *PostRepository) GetAllPosts() ([]Post, error) {
 		if err != nil {
 			return nil, err
 		}
-		posts = append(posts, p)
+		posts = append(posts, &p)
 	}
 
 	return posts, rows.Err()

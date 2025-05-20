@@ -1,8 +1,6 @@
 package main
 
 import (
-	"github.com/Iowel/app-base-server/configs"
-	"github.com/Iowel/app-base-server/pkg/db"
 	"encoding/gob"
 	"flag"
 	"html/template"
@@ -10,6 +8,9 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/Iowel/app-base-server/configs"
+	"github.com/Iowel/app-base-server/pkg/db"
 
 	"github.com/alexedwards/scs/pgxstore"
 	"github.com/alexedwards/scs/v2"
@@ -83,7 +84,6 @@ func main() {
 	flag.StringVar(&cfg.saga_api, "saga_api", "http://84.201.150.225:8087", "URL to saga_api")
 	flag.StringVar(&cfg.prod_serv, "prod_serv", "http://84.201.150.225:8088", "URL to auth_api")
 
-
 	// для теста на локальной машине
 	// flag.StringVar(&cfg.server_ip, "server_ip", "http://localhost:8081", "URL to server_ip")
 	// flag.StringVar(&cfg.frontend_ip, "frontend_ip", "localhost", "URL to frontend_ip") // for ws
@@ -92,7 +92,7 @@ func main() {
 	// flag.StringVar(&cfg.prod_serv, "prod_serv", "http://localhost:8088", "URL to auth_api")
 
 	flag.StringVar(&cfg.secretkey, "secret", "f92JkL5vZxP8tYqB7sNAeW4HrmCXg1dU", "secret key")
-	flag.StringVar(&cfg.frontend, "interface", "http://localhost:8082", "url to front end")
+	flag.StringVar(&cfg.frontend, "interface", "http://84.201.150.225:8082", "url to front end")
 
 	flag.Parse()
 
