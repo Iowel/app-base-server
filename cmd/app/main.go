@@ -20,8 +20,8 @@ import (
 
 func main() {
 	conf := configs.LoadConfig()
-	db, err := db.NewDB(*conf)
 
+	db, err := db.NewDB(*conf)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -35,9 +35,8 @@ func main() {
 	mailer := mailer.NewMailer(conf)
 	gmailer := mail.NewGmailSender(conf.SmtpGmail.SenderName, conf.SmtpGmail.SenderAddress, conf.SmtpGmail.SenderPassword)
 	poseRepo := posts.NewPostRepository(db)
-	// cacheRepo := cache.NewRedisCache(host, redisDB, exp)
-	cacheRepo := cache.NewRedisCache(conf.Redis.Port, conf.Redis.RedisDB, conf.Redis.Exp)
 
+	cacheRepo := cache.NewRedisCache(conf.Redis.Port, conf.Redis.RedisDB, conf.Redis.Exp)
 	postCacheRepo := posts.NewRedisCache(conf.Redis.Port, conf.Redis.RedisDB, conf.Redis.Exp)
 
 	// Services
@@ -63,5 +62,4 @@ func main() {
 
 	log.Printf("Starting HTTP server on port %s\n", conf.Web.Port)
 	server.ListenAndServe()
-
 }

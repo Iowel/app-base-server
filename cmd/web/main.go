@@ -93,6 +93,8 @@ func main() {
 
 	flag.StringVar(&cfg.secretkey, "secret", "f92JkL5vZxP8tYqB7sNAeW4HrmCXg1dU", "secret key")
 	flag.StringVar(&cfg.frontend, "interface", "http://84.201.150.225:8082", "url to front end")
+	
+	// flag.StringVar(&cfg.frontend, "interface", "http://localhost:8082", "url to front end") // for local test
 
 	flag.Parse()
 
