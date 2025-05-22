@@ -9,17 +9,24 @@
     <!-- сюдп подставляются карточки товаров из js -->
   </div>
 </div>
+
+<!-- Уведомления -->
+<div id="notification" class="notification"></div>
+
+
 {{end}}
 
 {{define "js"}}
 <script>
 checkAuth(); 
 
+const userId = {{.UserID}};
 
 document.addEventListener("DOMContentLoaded", function () {
   fetch("{{.SERVERIP}}/api/all-posts")
     .then(res => res.json())
     .then(data => {
+    console.log(data);
       const container = document.getElementById("all-posts");
 
       if (data.length === 0) {
@@ -38,8 +45,18 @@ document.addEventListener("DOMContentLoaded", function () {
                   <img src="${post.avatar}" class="rounded-circle mb-3" style="width: 80px; height: 80px;" alt="Avatar">
                   <h5 class="card-title">${post.title}</h5>
                   <p class="card-text">${post.content}</p>
+                ${post.image && post.image.trim() !== "" ? `<img src="${post.image}" class="img-fluid" alt="Post Image">` : ""}
+
+
                   <p class="card-text">
                     <small class="text-muted">Автор: ${post.user_name}</small><br>
+
+                  <div class="d-flex justify-content-center align-items-center mb-2">
+                     <button class="btn btn-outline-danger btn-sm me-2 like-button" data-post-id="${post.id}">
+                        ❤️ <span class="like-count">${post.likes || 0}</span>
+                      </button>
+                </div>
+
                     <small class="text-muted">Создан: ${new Date(post.created_at).toLocaleString()}</small>
                   </p>
                   <a href="/profile/${post.user_id}" class="btn btn-sm btn-outline-primary">Посмотреть профиль</a>
@@ -48,7 +65,60 @@ document.addEventListener("DOMContentLoaded", function () {
             `;
         container.appendChild(el);
       });
+
+
+
+function showNotification(message, type) {
+  const notification = document.getElementById("notification");
+  notification.textContent = message;
+  notification.className = `notification ${type}`;
+
+  setTimeout(() => {
+    notification.classList.remove("show");
+  }, 700); 
+
+ 
+  notification.classList.add("show");
+}
+
+
+
+
+// обработчик лайков
+document.querySelectorAll(".like-button").forEach(btn => {
+  btn.addEventListener("click", function () {
+    const postId = this.getAttribute("data-post-id");
+
+    fetch("{{.SERVERIP}}/api/like-post", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ post_id: postId, user_id: userId }),
     })
+.then(async res => {
+  if (!res.ok) {
+    const text = await res.text();
+    try {
+      const json = JSON.parse(text);
+      if (json.likes !== undefined) {
+        this.querySelector(".like-count").textContent = json.likes;
+        return;
+      }
+    } catch (e) {
+      showNotification(text, "error");
+      throw new Error(text);
+    }
+  } else {
+    const updatedLikes = await res.json();
+    this.querySelector(".like-count").textContent = updatedLikes.likes;
+  }
+})
+  });
+});
+
+
+})
     .catch(err => {
       console.error("Ошибка при загрузке постов:", err);
     });

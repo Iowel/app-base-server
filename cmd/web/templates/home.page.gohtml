@@ -17,7 +17,7 @@
     let token = localStorage.getItem("token");
 
     if (token === null) {
-      avatar.src = "static/nahui.jpg";  // корректно обнуляем изображение
+      avatar.src = "static/nahui.jpg";
       text.textContent = "Not logged in";
     } else {
       text.textContent = "Welcome!";

@@ -278,29 +278,6 @@ func (s *AuthService) UpdateUser(inputUser *user.User) error {
 		return err
 	}
 
-	// profile, err := s.Profile.GetProfile(newUser.ID)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// var cacheUser = &user.UserCache{
-	// 	ID:        newUser.ID,
-	// 	Email:     newUser.Email,
-	// 	Password:  newUser.Password,
-	// 	Name:      newUser.Name,
-	// 	Token:     newUser.Token,
-	// 	Role:      newUser.Role,
-	// 	Avatar:    newUser.Avatar,
-	// 	Status:    profile.Status,
-	// 	Wallet:    profile.Wallet,
-	// 	CreatedAt: newUser.CreatedAt,
-	// 	UpdatedAt: newUser.UpdatedAt,
-	// }
-
-	// log.Printf("UPDATEEEEEEEEEEEEEEEE %+v\n", cacheUser)
-
-	// idStr := "user:" + strconv.Itoa(newUser.ID)
-	// s.Cache.Set(idStr, cacheUser)
 
 	return nil
 }

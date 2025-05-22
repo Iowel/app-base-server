@@ -41,6 +41,37 @@
 
 
 
+
+
+
+
+  @media (max-width: 576px) {
+    .navbar-nav .nav-link {
+      font-size: 0.9rem;
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
+    }
+
+    #user-balance {
+      font-size: 0.8rem;
+    }
+
+    .dropdown-menu {
+      font-size: 0.9rem;
+    }
+  }
+
+  @media (min-width: 992px) {
+    #user-balance {
+      font-size: 1rem;
+    }
+  }
+
+
+
+  
+
+
 </style>
 
 
@@ -96,9 +127,9 @@
             <a class="nav-link" href="/admin/books">Книги</a>
           </li>
 
-          <li id="pr-link" class="nav-item">
+          {{/* <li id="pr-link" class="nav-item">
             <a class="nav-link" href="/kino">Kino</a>
-          </li>         
+          </li>          */}}
 
 
           <li id="pr-link" class="nav-item ">
@@ -176,7 +207,7 @@
     </div>
   </nav>
 
-      <div class="container">
+      <div class="container py-3 px-2 px-md-4">
         <div class="row">
             <div class="col">
                 {{block "content" .}} {{end}}

@@ -33,6 +33,9 @@ func NewAuthHandler(router *http.ServeMux, deps AuthHandlerDeps) {
 	router.HandleFunc("GET /api/get-profile", handler.GetProfile())
 	router.HandleFunc("POST /api/update-profile/{id}", handler.UpdateProfile())
 
+
+
+
 	router.HandleFunc("GET /api/get_balance/{id}", handler.GetBalance())
 	router.HandleFunc("POST /api/add-balance/{id}", handler.AddBalance())
 

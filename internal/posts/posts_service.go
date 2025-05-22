@@ -5,6 +5,7 @@ import (
 
 	"github.com/Iowel/app-base-server/internal/user"
 	"github.com/Iowel/app-base-server/pkg/cache"
+	"github.com/jackc/pgconn"
 )
 
 type PostService struct {
@@ -35,6 +36,8 @@ func (p *PostService) CreatePost(postInput *Post) error {
 		UserID:    post.UserID,
 		Title:     post.Title,
 		Content:   post.Content,
+		Image:     post.Image,
+		Likes:     post.Likes,
 		CreatedAt: post.CreatedAt,
 		UpdatedAt: post.UpdatedAt,
 	}
@@ -86,12 +89,62 @@ func (p *PostService) GetPostsAllUsers() ([]*Post, error) {
 		idStr := "user:" + strconv.Itoa(post.UserID)
 		user := p.userCache.Get(idStr)
 
+		like, _ := p.post.GetLikeToPost(post.ID)
+
+		if like != 0 {
+			post.Likes = like
+		}
+
 		if user != nil {
 			post.UserName = user.Name
 			post.Avatar = user.Avatar
+
 		}
+
 	}
 
 	return posts, nil
 
+}
+
+func (p *PostService) LikesUpper(postID int) error {
+
+	if err := p.post.LikesUp(postID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *PostService) GetLikeToPost(postID int) (int, error) {
+	return p.post.GetLikeToPost(postID)
+}
+
+func (p *PostService) AddCountLikes(postID, userID int) (bool, error) {
+	_, err := p.post.AddCountLikesForOneUser(postID, userID)
+	if err != nil {
+		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+func (p *PostService) RemoveLikeToPost(postID, userID int) error {
+	err := p.post.DeleteCountLikesForOneUser(postID, userID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *PostService) LikesDowner(postID int) error {
+
+	if err := p.post.LikesDown(postID); err != nil {
+		return err
+	}
+
+	return nil
 }

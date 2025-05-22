@@ -53,6 +53,24 @@
         <div class="mb-3">
           <textarea id="postContent" class="form-control" rows="3" placeholder="Текст поста" required></textarea>
         </div>
+      {{/* <div class="mb-3">
+          <label for="postImage" class="form-label">Прикрепить изображение (необязательно)</label>
+          <input type="file" id="postImage" name="image" class="form-control" accept="image/*">
+      </div> */}}
+
+        <div class="mb-3">
+          <label for="image" class="form-label">Прикрепить изображение (необязательно)</label>
+          <input type="url" class="form-control" id="image" name="image" placeholder="https://example.com/avatar.jpg">
+        </div>
+
+
+          <!-- Предпросмотр аватара -->
+        <div class="text-center">
+          <img id="avatarPreview" class="img-thumbnail w-25" src="https://via.placeholder.com/150" alt="Аватар">
+        </div>
+
+
+
         <button type="submit" class="btn btn-primary">Опубликовать</button>
       </form>
 
@@ -92,9 +110,14 @@ checkAuth();
 
 const userId = {{.UserID}};
 
+const postImageInput = document.getElementById('image');
 
+const avatarPreview = document.getElementById('avatarPreview');
 
-
+postImageInput.addEventListener('input', () => {
+  const url = postImageInput.value.trim();
+  avatarPreview.src = url ? url : 'https://via.placeholder.com/150';
+});
 const usersList = document.getElementById('users-list');
 let token = localStorage.getItem("token");
 
@@ -183,9 +206,10 @@ document.addEventListener("DOMContentLoaded", function () {
       document.getElementById("user-email").textContent = data.email;
       document.getElementById("avatar").src = data.avatar;
       document.getElementById("about").textContent = data.about;
-        const statusBadge = document.getElementById("user-status-badge");
-        statusBadge.textContent = data.status;
+      const statusBadge = document.getElementById("user-status-badge");
+      statusBadge.textContent = data.status;
 
+        // смена цвета статуса в зависимости от значения
         switch (data.status.toLowerCase()) {
           case "серебренный":
             statusBadge.className = "badge bg-secondary";
@@ -225,7 +249,7 @@ function showNotification(message, type) {
 
   setTimeout(() => {
     notification.classList.remove("show");
-  }, 1000); // Убираем уведомление через 5 секунд
+  }, 700); 
 
   // Показываем уведомление
   notification.classList.add("show");
@@ -269,6 +293,10 @@ document.getElementById("addBalanceBtn").addEventListener("click", function() {
 
     const title = document.getElementById("postTitle").value.trim();
     const content = document.getElementById("postContent").value.trim();
+    const image = postImageInput.value.trim();
+
+
+    
 
     if (!title || !content) {
       showNotification("Пожалуйста, заполните все поля.", "error");
@@ -282,7 +310,7 @@ document.getElementById("addBalanceBtn").addEventListener("click", function() {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + token,
       },
-      body: JSON.stringify({user_id: userId, title: title, content: content })
+      body: JSON.stringify({user_id: userId, title: title, content: content, image: image})
     };
 
     fetch("{{.SERVERIP}}/api/send-posts", requestOptions)
@@ -345,6 +373,9 @@ function loadUserPosts() {
           <div class="card-body">
             <h5 class="card-title">${post.title}</h5>
             <p class="card-text">${post.content}</p>
+          ${post.image && post.image.trim() !== "" ? 
+            `<img src="${post.image}" style="width: 150; height: 150px; object-fit: cover;" class="rounded mb-3" alt="Post Image">` 
+            : ""}
             <p class="card-text"><small class="text-muted">ID поста: ${post.id}</small></p>
           </div>
         `;
