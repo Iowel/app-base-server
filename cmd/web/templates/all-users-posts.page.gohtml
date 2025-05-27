@@ -1,14 +1,48 @@
 {{template "base" .}}
 
+
+
 {{define "title"}}Все посты пользователей{{end}}
 
+
+
+
+
 {{define "content"}}
+
+
+
+<hr class="dropdown-divider">
+
+<form id="postForm" novalidate>
+  <h2>Новая запись</h2>
+
+  <input type="text" id="postTitle" placeholder="Заголовок" required autocomplete="off">
+
+  <textarea id="postContent" rows="1" placeholder="Текст поста" required></textarea>
+
+  <label for="image">Прикрепить изображение (URL, необязательно)</label>
+  <input type="url" id="image" name="image" placeholder="https://example.com/avatar.jpg" autocomplete="off">
+
+  <img id="avatarPreview" src="https://via.placeholder.com/150" alt="">
+
+  <button type="submit">Опубликовать</button>
+</form>
+
+
 <div class="container mt-5">
   <h1 class="mb-4">Все посты</h1>
+
+
   <div id="all-posts" class="row row-cols-1 row-cols-md-2 g-4">
     <!-- сюдп подставляются карточки товаров из js -->
   </div>
 </div>
+
+
+
+
+
 
 <!-- Уведомления -->
 <div id="notification" class="notification"></div>
@@ -17,17 +51,82 @@
 {{end}}
 
 {{define "js"}}
+<script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 checkAuth(); 
+ loadPosts();
+
+
+
+const postImageInput = document.getElementById('image');
+
+const avatarPreview = document.getElementById('avatarPreview');
+
+postImageInput.addEventListener('input', () => {
+  const url = postImageInput.value.trim();
+  avatarPreview.src = url ? url : 'https://via.placeholder.com/150';
+});
 
 const userId = {{.UserID}};
 
-document.addEventListener("DOMContentLoaded", function () {
+
+
+// Обработка формы публикации поста
+  document.getElementById("postForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+
+    const title = document.getElementById("postTitle").value.trim();
+    const content = document.getElementById("postContent").value.trim();
+    const image = postImageInput.value.trim();
+
+
+    
+
+    if (!title || !content) {
+      showNotification("Пожалуйста, заполните все поля.", "error");
+      return;
+    }
+
+    const requestOptions = {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({user_id: userId, title: title, content: content, image: image})
+    };
+
+    fetch("{{.SERVERIP}}/api/send-posts", requestOptions)
+      .then(response => response.json())
+      .then(data => {
+        if (!data.error) {
+        Swal.fire({
+          title: 'Успешно!',
+          text: 'Пост успешно опубликован!.',
+          icon: 'success',
+          confirmButtonText: 'Ок'
+      });
+       loadPosts();
+          document.getElementById("postForm").reset();
+        } else {
+          showNotification("Ошибка публикации: " + data.message, "error");
+        }
+      })
+      .catch(error => {
+        console.error("Ошибка публикации поста:", error);
+        showNotification("Произошла ошибка при публикации.", "error");
+      });
+
+});
+
+
+
+function loadPosts() {
   fetch("{{.SERVERIP}}/api/all-posts")
     .then(res => res.json())
     .then(data => {
-    console.log(data);
       const container = document.getElementById("all-posts");
+      container.innerHTML = ""; // очистить старые посты
 
       if (data.length === 0) {
         container.innerHTML = "<p>Постов пока нет.</p>";
@@ -39,90 +138,67 @@ document.addEventListener("DOMContentLoaded", function () {
       data.forEach(post => {
         const el = document.createElement("div");
         el.className = "col";
-            el.innerHTML = `
-              <div class="card shadow-sm h-100">
-                <div class="card-body text-center">
-                  <img src="${post.avatar}" class="rounded-circle mb-3" style="width: 80px; height: 80px;" alt="Avatar">
-                  <h5 class="card-title">${post.title}</h5>
-                  <p class="card-text">${post.content}</p>
-                ${post.image && post.image.trim() !== "" ? `<img src="${post.image}" class="img-fluid" alt="Post Image">` : ""}
-
-
-                  <p class="card-text">
-                    <small class="text-muted">Автор: ${post.user_name}</small><br>
-
-                  <div class="d-flex justify-content-center align-items-center mb-2">
-                     <button class="btn btn-outline-danger btn-sm me-2 like-button" data-post-id="${post.id}">
-                        ❤️ <span class="like-count">${post.likes || 0}</span>
-                      </button>
-                </div>
-
-                    <small class="text-muted">Создан: ${new Date(post.created_at).toLocaleString()}</small>
-                  </p>
-                  <a href="/profile/${post.user_id}" class="btn btn-sm btn-outline-primary">Посмотреть профиль</a>
-                </div>
+        el.innerHTML = `
+          <div class="card shadow-sm h-100">
+            <div class="card-body text-center">
+              <img src="${post.avatar}" class="rounded-circle mb-3" style="width: 80px; height: 80px;" alt="Avatar">
+              <h5 class="card-title">${post.title}</h5>
+              <p class="card-text">${post.content}</p>
+              ${post.image && post.image.trim() !== "" ? `<img src="${post.image}" class="img-fluid" alt="Post Image">` : ""}
+              <p class="card-text">
+                <small class="text-muted">Автор: ${post.user_name}</small><br>
+              </p>
+              <div class="d-flex justify-content-center align-items-center mb-2">
+                <button class="btn btn-outline-danger btn-sm me-2 like-button" data-post-id="${post.id}">
+                  ❤️ <span class="like-count">${post.likes || 0}</span>
+                </button>
               </div>
-            `;
+              <small class="text-muted">Создан: ${new Date(post.created_at).toLocaleString()}</small>
+              <br>
+              <a href="/one-profile/${post.user_id}" class="btn btn-sm btn-outline-primary">Посмотреть профиль</a>
+            </div>
+          </div>
+        `;
         container.appendChild(el);
       });
 
+      // добавим обработчики лайков
+      document.querySelectorAll(".like-button").forEach(btn => {
+        btn.addEventListener("click", function () {
+          const postId = this.getAttribute("data-post-id");
+
+          fetch("{{.SERVERIP}}/api/like-post", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ post_id: postId, user_id: userId }),
+          })
+          .then(async res => {
+            const data = await res.json();
+            if (data.likes !== undefined) {
+              this.querySelector(".like-count").textContent = data.likes;
+            }
+          });
+        });
+      });
+
+    })
+    .catch(err => {
+      console.error("Ошибка при загрузке постов:", err);
+    });
+}
 
 
 function showNotification(message, type) {
   const notification = document.getElementById("notification");
   notification.textContent = message;
   notification.className = `notification ${type}`;
-
+  notification.classList.add("show");
   setTimeout(() => {
     notification.classList.remove("show");
-  }, 700); 
-
- 
-  notification.classList.add("show");
+  }, 700);
 }
-
-
-
-
-// обработчик лайков
-document.querySelectorAll(".like-button").forEach(btn => {
-  btn.addEventListener("click", function () {
-    const postId = this.getAttribute("data-post-id");
-
-    fetch("{{.SERVERIP}}/api/like-post", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ post_id: postId, user_id: userId }),
-    })
-.then(async res => {
-  if (!res.ok) {
-    const text = await res.text();
-    try {
-      const json = JSON.parse(text);
-      if (json.likes !== undefined) {
-        this.querySelector(".like-count").textContent = json.likes;
-        return;
-      }
-    } catch (e) {
-      showNotification(text, "error");
-      throw new Error(text);
-    }
-  } else {
-    const updatedLikes = await res.json();
-    this.querySelector(".like-count").textContent = updatedLikes.likes;
-  }
-})
-  });
-});
-
-
-})
-    .catch(err => {
-      console.error("Ошибка при загрузке постов:", err);
-    });
-});
-
 </script>
+
 {{end}}

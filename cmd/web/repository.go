@@ -4,8 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
 	"time"
 
+	"github.com/Iowel/app-base-server/internal/token"
+	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -61,4 +64,35 @@ func (app *application) GetOneUser(id int) (*User, error) {
 	}
 
 	return &u, nil
+}
+
+func (app *application) GetTokenFromUser(user *User) (*token.Token, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	var token token.Token
+
+	query := `
+		SELECT
+			expiry
+		FROM
+			tokens
+		WHERE
+			user_id = $1
+	`
+
+	err := app.Db.Pool.QueryRow(ctx, query, user.ID).Scan(
+		&token.Expiry,
+	)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			log.Println("Token not found or expired")
+			return nil, nil
+		}
+		log.Println("DB error:", err)
+		return nil, err
+	}
+
+	return &token, nil
 }

@@ -4,13 +4,22 @@
     Home
 {{end}}
 
-{{ define "content" }}
+{{define "content"}}
   <h2 class="mt-3 text-center" id="text">Hi</h2>
 
-  <img src="static/cot.jpg" id="avatar" class="avatar-img mb-3" alt="Avatar">
-{{ end }}
+  <div class="text-center">
+    <img src="static/cot.jpg" id="avatar" class="avatar-img mb-3" alt="Avatar" style="max-width: 900px;">
 
-{{ define "js" }}
+
+
+    <div id="auth-buttons" class="mt-3">
+      <a href="/login" class="btn btn-primary me-2">Login</a>
+      <a href="/register" class="btn btn-secondary">Register</a>
+    </div>
+  </div>
+{{end}}
+
+{{define "js"}}
   <script>
     let avatar = document.getElementById("avatar");
     let text = document.getElementById("text");
@@ -21,6 +30,10 @@
       text.textContent = "Not logged in";
     } else {
       text.textContent = "Welcome!";
+      const authButtons = document.getElementById("auth-buttons");
+      if (authButtons) {
+        authButtons.style.display = "none";
+      }
     }
   </script>
-{{ end }}
+{{end}}

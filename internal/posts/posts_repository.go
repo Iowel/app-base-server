@@ -78,7 +78,7 @@ func (p *PostRepository) GetAllPosts() ([]*Post, error) {
 
 	query := `
         SELECT 
-            p.id, p.title, p.content, p.user_id, p.image,
+            p.id, p.title, p.content, p.user_id, p.image, p.created_at,
             u.name, u.avatar
         FROM posts p
         JOIN users u ON p.user_id = u.id
@@ -96,7 +96,7 @@ func (p *PostRepository) GetAllPosts() ([]*Post, error) {
 	for rows.Next() {
 
 		var p Post
-		err := rows.Scan(&p.ID, &p.Title, &p.Content, &p.UserID, &p.Image, &p.UserName, &p.Avatar)
+		err := rows.Scan(&p.ID, &p.Title, &p.Content, &p.UserID, &p.Image, &p.CreatedAt, &p.UserName, &p.Avatar)
 		if err != nil {
 			return nil, err
 		}

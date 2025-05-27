@@ -70,6 +70,8 @@ func (s *AuthService) GetAllUsers() ([]*user.UserCache, error) {
 
 func (s *AuthService) GetAllUsersForAdmin() ([]*user.UserCache, error) {
 
+	
+
 	users, err := s.UserRepo.GetAllUsers()
 	if err != nil {
 		return nil, errors.New(ErrGetAllUsers)
@@ -146,7 +148,10 @@ func (s *AuthService) AuthenticateToken(r *http.Request) (*user.User, error) {
 
 func (s *AuthService) GetProfiles(r *http.Request) (*ProfileResponse, error) {
 
-	user, _ := s.AuthenticateToken(r)
+	user, err := s.AuthenticateToken(r)
+	if err != nil {
+		return nil, err
+	}
 
 	// получаем профиль
 	profile, err := s.Profile.GetProfile(user.ID)
@@ -166,6 +171,19 @@ func (s *AuthService) GetProfiles(r *http.Request) (*ProfileResponse, error) {
 	}
 
 	return &resp, nil
+}
+
+func (s *AuthService) GetOneProfile(user *user.User) (*profiles.Profile, error) {
+
+	// получаем профиль
+	profile, err := s.Profile.GetProfile(user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+
+
+	return profile, nil
 }
 
 func (s *AuthService) ForgotPassword(w http.ResponseWriter, email string) error {
@@ -277,7 +295,6 @@ func (s *AuthService) UpdateUser(inputUser *user.User) error {
 	if err != nil {
 		return err
 	}
-
 
 	return nil
 }

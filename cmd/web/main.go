@@ -70,31 +70,34 @@ func (app *application) serve() error {
 
 func main() {
 	gob.Register(map[string]interface{}{})
+	gob.Register(time.Time{})
 
 	var cfg config
 
 	flag.IntVar(&cfg.port, "port", 8082, "Server port to listen on")
 	flag.StringVar(&cfg.env, "env", "development", "Application environment {development|production}")
-	flag.StringVar(&cfg.api, "api", "http://158.160.74.150:8081", "URL to api")
+	// flag.StringVar(&cfg.api, "api", "http://158.160.74.150:8081", "URL to api")
+	// flag.StringVar(&cfg.api, "api", "http://localhost:8081", "URL to api")
+	flag.StringVar(&cfg.api, "api", "http://localhost:8081", "URL to api")
 
 	// для продакшна
-	flag.StringVar(&cfg.server_ip, "server_ip", "http://158.160.74.150:8081", "URL to server_ip")
-	flag.StringVar(&cfg.frontend_ip, "frontend_ip", "158.160.74.150", "URL to frontend_ip") // for ws
-	flag.StringVar(&cfg.auth_api, "auth_api", "http://158.160.74.150:8083", "URL to auth_api")
-	flag.StringVar(&cfg.saga_api, "saga_api", "http://158.160.74.150:8087", "URL to saga_api")
-	flag.StringVar(&cfg.prod_serv, "prod_serv", "http://158.160.74.150:8088", "URL to auth_api")
+	// flag.StringVar(&cfg.server_ip, "server_ip", "http://158.160.74.150:8081", "URL to server_ip")
+	// flag.StringVar(&cfg.frontend_ip, "frontend_ip", "158.160.74.150", "URL to frontend_ip") // for ws
+	// flag.StringVar(&cfg.auth_api, "auth_api", "http://158.160.74.150:8083", "URL to auth_api")
+	// flag.StringVar(&cfg.saga_api, "saga_api", "http://158.160.74.150:8087", "URL to saga_api")
+	// flag.StringVar(&cfg.prod_serv, "prod_serv", "http://158.160.74.150:8088", "URL to auth_api")
 
 	// для теста на локальной машине
-	// flag.StringVar(&cfg.server_ip, "server_ip", "http://localhost:8081", "URL to server_ip")
-	// flag.StringVar(&cfg.frontend_ip, "frontend_ip", "localhost", "URL to frontend_ip") // for ws
-	// flag.StringVar(&cfg.auth_api, "auth_api", "http://localhost:8083", "URL to auth_api")
-	// flag.StringVar(&cfg.saga_api, "saga_api", "http://localhost:8087", "URL to saga_api")
-	// flag.StringVar(&cfg.prod_serv, "prod_serv", "http://localhost:8088", "URL to auth_api")
+	flag.StringVar(&cfg.server_ip, "server_ip", "http://localhost:8081", "URL to server_ip")
+	flag.StringVar(&cfg.frontend_ip, "frontend_ip", "localhost", "URL to frontend_ip") // for ws
+	flag.StringVar(&cfg.auth_api, "auth_api", "http://localhost:8083", "URL to auth_api")
+	flag.StringVar(&cfg.saga_api, "saga_api", "http://localhost:8087", "URL to saga_api")
+	flag.StringVar(&cfg.prod_serv, "prod_serv", "http://localhost:8088", "URL to auth_api")
 
 	flag.StringVar(&cfg.secretkey, "secret", "f92JkL5vZxP8tYqB7sNAeW4HrmCXg1dU", "secret key")
-	flag.StringVar(&cfg.frontend, "interface", "http://158.160.74.150:8082", "url to front end")
+	// flag.StringVar(&cfg.frontend, "interface", "http://158.160.74.150:8082", "url to front end")
 
-	// flag.StringVar(&cfg.frontend, "interface", "http://localhost:8082", "url to front end") // for local test
+	flag.StringVar(&cfg.frontend, "interface", "http://localhost:8082", "url to front end") // for local test
 
 	flag.Parse()
 

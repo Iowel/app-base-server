@@ -13,7 +13,8 @@
   <div class="profile-card card shadow-sm">
     <div class="card-body text-center">
       <!-- Аватар -->
-      <img src="https://via.placeholder.com/150" id="avatar" class="avatar-img mb-3" alt="Avatar">
+     <img src="https://via.placeholder.com/150" id="avatar" class="mb-3" style="width: 450px; height: 291px;" alt="Avatar">
+
       <h3 id="user-name">Имя пользователя</h3>
       <p id="user-email">Email: user@example.com</p>
 
@@ -66,7 +67,7 @@
 
           <!-- Предпросмотр аватара -->
         <div class="text-center">
-          <img id="avatarPreview" class="img-thumbnail w-25" src="https://via.placeholder.com/150" alt="Аватар">
+           <img id="avatarPreview" src="https://via.placeholder.com/150" alt="">
         </div>
 
 
@@ -142,6 +143,17 @@ document.addEventListener("DOMContentLoaded", function () {
       // Очищаем usersList перед добавлением новых элементов
       usersList.innerHTML = '';
 
+
+
+      function getAvatarUrl(avatar) {
+        if (/^https?:\/\//i.test(avatar)) {
+          return avatar;
+        } else {
+          return "/" + avatar.replace(/^\/?/, "");
+      }
+   }
+
+
       // Добавляем карточки пользователей
       data.friends.forEach(friendId => {
         fetch(`{{.SERVERIP}}/friends/${friendId}`, {
@@ -158,12 +170,12 @@ document.addEventListener("DOMContentLoaded", function () {
             userCard.classList.add('col');
             userCard.innerHTML = `
               <div class="card shadow-sm">
-                <img src="${friend.avatar}" class="card-img-top" alt="Profile Picture">
+                 <img src="${getAvatarUrl(friend.avatar)}" class="friend-avatar" alt="Profile Picture">
                 <div class="card-body">
                   <h5 class="card-title">${friend.name}</h5>
                   {{/* <p class="card-text">Email: ${friend.email}</p> */}}
                   <p class="card-text">ID: ${friend.id}</p>
-                  <a href="/profile/${friend.id}" class="btn btn-primary">Просмотр профиля</a>
+                  <a href="/one-profile/${friend.id}" class="btn btn-primary">Просмотр профиля</a>
                   <hr class="dropdown-divider">
                   <a class="btn btn-danger delete-btn" href="javascript:void(0);" data-user-id="${friend.id}">Удалить из друзей</a>
                 </div>
@@ -365,6 +377,8 @@ function loadUserPosts() {
         postsContainer.innerHTML = "<p>У вас пока нет постов.</p>";
         return;
       }
+
+       posts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
       posts.forEach(post => {
         const postEl = document.createElement("div");

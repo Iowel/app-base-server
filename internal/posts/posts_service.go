@@ -1,6 +1,7 @@
 package posts
 
 import (
+	"log"
 	"strconv"
 
 	"github.com/Iowel/app-base-server/internal/user"
@@ -102,6 +103,8 @@ func (p *PostService) GetPostsAllUsers() ([]*Post, error) {
 		}
 
 	}
+
+	log.Printf("GETALLPOSTS: %v\n", posts[1].CreatedAt)
 
 	return posts, nil
 

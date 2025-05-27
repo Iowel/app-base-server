@@ -1,10 +1,12 @@
 package main
 
 import (
-	"github.com/Iowel/app-base-server/pkg/encryption"
-	"github.com/Iowel/app-base-server/pkg/urlsigner"
 	"fmt"
 	"net/http"
+	"time"
+
+	"github.com/Iowel/app-base-server/pkg/encryption"
+	"github.com/Iowel/app-base-server/pkg/urlsigner"
 )
 
 func (app *application) Home(w http.ResponseWriter, r *http.Request) {
@@ -38,6 +40,7 @@ func (app *application) PostLoginPage(w http.ResponseWriter, r *http.Request) {
 	email := r.Form.Get("email")
 	password := r.Form.Get("password")
 
+	//save userID exp to session
 	id, err := app.Authenticate(email, password)
 	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -45,6 +48,7 @@ func (app *application) PostLoginPage(w http.ResponseWriter, r *http.Request) {
 	}
 	app.Session.Put(r.Context(), "userID", id)
 
+	//save userRole exp to session
 	user, err := app.GetOneUser(id)
 	if err != nil {
 		app.errorLog.Println("ошибка получения пользователя:", err)
@@ -52,6 +56,10 @@ func (app *application) PostLoginPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	app.Session.Put(r.Context(), "userRole", user.Role)
+
+	// save token exp to session
+	app.Session.Put(r.Context(), "tokenExp", time.Now().Add(100*time.Hour))
+	// app.Session.Put(r.Context(), "tokenExp", time.Now().Add(10*time.Second))
 
 	http.Redirect(w, r, "/home", http.StatusSeeOther)
 }
@@ -153,6 +161,12 @@ func (app *application) AllUsersposts(w http.ResponseWriter, r *http.Request) {
 
 func (app *application) OneUser(w http.ResponseWriter, r *http.Request) {
 	if err := app.renderTemplate(w, r, "one-user", &templateData{}); err != nil {
+		app.errorLog.Print(err)
+	}
+}
+
+func (app *application) OneProfile(w http.ResponseWriter, r *http.Request) {
+	if err := app.renderTemplate(w, r, "one-profile", &templateData{}); err != nil {
 		app.errorLog.Print(err)
 	}
 }

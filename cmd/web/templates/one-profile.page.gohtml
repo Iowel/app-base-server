@@ -1,0 +1,247 @@
+{{template "base" .}}
+
+{{define "title"}}
+    Мой профиль
+{{end}}
+
+{{define "content"}}
+
+  <!-- Контент профиля -->
+
+
+<div class="container mt-5">
+  <div class="profile-card card shadow-sm">
+    <div class="card-body text-center">
+      <!-- Аватар -->
+      <img src="https://via.placeholder.com/150" id="avatar" class="mb-3" style="width: 450px; height: 291px;" alt="Avatar">
+      <h3 id="user-name">Имя пользователя</h3>
+
+
+    <!-- Статус пользователя -->
+    <p id="user-status" class="mt-2">
+      <strong>Cтатус:</strong> 
+      <span id="user-status-badge" class="badge bg-secondary">Загрузка...</span>
+    </p>
+
+      
+      <!-- Описание -->
+      <p><strong>О пользователе:</strong></p>
+      <p id="about">Здесь будет информация о пользователе.</p>
+      
+
+
+
+      <hr class="dropdown-divider">
+        <h2>Посты пользователя</h2>
+      <div id="my-posts" class="mt-3"></div>
+
+
+      <!-- Список друзей -->
+       <hr class="dropdown-divider">
+       <hr class="dropdown-divider">
+              <hr class="dropdown-divider">
+      <h1><strong>Друзья:</strong></h1>
+      <ul id="friends-list" class="list-group list-group-flush">
+        <!-- Друзья будут добавляться сюда через JS -->
+      </ul>
+
+       <div id="users-list" class="row row-cols-1 row-cols-md-3 g-4"></div>
+      
+ 
+    </div>
+  </div>
+</div>
+
+<!-- Уведомления -->
+<div id="notification" class="notification"></div>
+
+
+{{end}}
+
+{{define "js"}}
+<script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+checkAuth();
+
+
+
+
+
+
+const idd = parseInt(window.location.pathname.split("/").pop());
+
+
+const usersList = document.getElementById('users-list');
+let token = localStorage.getItem("token");
+
+document.addEventListener("DOMContentLoaded", function () {
+  const requestOptions = {
+    method: 'get',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    }
+  };
+
+  fetch('{{.SERVERIP}}/api/profile/'+idd, requestOptions)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error("Ошибка ответа от сервера");
+      }
+      return response.json();
+    })
+    .then(function (data) {
+      // Очищаем usersList перед добавлением новых элементов
+      usersList.innerHTML = '';
+
+
+      function getAvatarUrl(avatar) {
+        if (/^https?:\/\//i.test(avatar)) {
+          return avatar;
+        } else {
+          return "/" + avatar.replace(/^\/?/, "");
+      }
+   }
+
+
+      // Добавляем карточки пользователей
+      data.friends.forEach(friendId => {
+        fetch(`{{.SERVERIP}}/friends/${friendId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+        .then(res => res.json())
+        .then(friendData => {
+          // Для каждого друга создаем карточку
+          friendData.forEach(friend => {
+            const userCard = document.createElement('div');
+            userCard.classList.add('col');
+            userCard.innerHTML = `
+              <div class="card shadow-sm">
+              {{/* <img src="/${friend.avatar.replace(/^\/?/, '')}" class="card-img-top" alt="Profile Picture"> */}}
+              <img src="${getAvatarUrl(friend.avatar)}" class="friend-avatar" alt="Profile Picture">
+
+                <div class="card-body">
+                  <h5 class="card-title">${friend.name}</h5>
+                  <p class="card-text">ID: ${friend.id}</p>
+                  <a href="/one-profile/${friend.id}" class="btn btn-primary">Просмотр профиля</a>
+                  <hr class="dropdown-divider">
+                </div>
+              </div>
+            `;
+            usersList.appendChild(userCard);
+          });
+        });
+      });
+
+
+
+
+
+      // Дополнительная информация о пользователе
+      document.getElementById("user-name").textContent = data.name;
+    {{/* document.getElementById("avatar").src = "/" + data.avatar.replace(/^\/?/, "");
+    document.getElementById("avatar").src = data.avatar; */}}
+
+
+
+    const avatarElement = document.getElementById("avatar");
+
+      if (/^https?:\/\//i.test(data.avatar)) {
+        // Внешний URL
+        avatarElement.src = data.avatar;
+      } else {
+        // Локальный путь
+        avatarElement.src = "/" + data.avatar.replace(/^\/?/, "");
+      }
+
+
+      document.getElementById("about").textContent = data.about;
+      const statusBadge = document.getElementById("user-status-badge");
+      statusBadge.textContent = data.status;
+
+        // смена цвета статуса в зависимости от значения
+        switch (data.status.toLowerCase()) {
+          case "серебренный":
+            statusBadge.className = "badge bg-secondary";
+            break;
+          case "золотой":
+            statusBadge.className = "badge bg-warning text-dark";
+            break;
+          case "бриллиантовый":
+            statusBadge.className = "badge bg-info text-dark";
+            break;
+          default:
+            statusBadge.className = "badge bg-secondary";
+        }
+
+
+
+    })
+    .catch(error => {
+      console.error("Ошибка запроса:", error);
+    });
+
+
+function loadUserPosts() {
+  const requestOptions = {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + token,
+    },
+    body: JSON.stringify({ user_id: idd })
+  };
+
+  fetch("{{.SERVERIP}}/api/get-posts", requestOptions)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error("Ошибка загрузки постов");
+      }
+      return response.json();
+    })
+    .then(posts => {
+      const postsContainer = document.getElementById("my-posts");
+      postsContainer.innerHTML = "";
+
+      if (posts.length === 0) {
+        postsContainer.innerHTML = "<p>У вас пока нет постов.</p>";
+        return;
+      }
+
+      posts.forEach(post => {
+        const postEl = document.createElement("div");
+        postEl.className = "card mb-3";
+        postEl.innerHTML = `
+          <div class="card-body">
+            <h5 class="card-title">${post.title}</h5>
+            <p class="card-text">${post.content}</p>
+          ${post.image && post.image.trim() !== "" ? 
+            `<img src="${post.image}" style="width: 150; height: 150px; object-fit: cover;" class="rounded mb-3" alt="Post Image">` 
+            : ""}
+            <p class="card-text"><small class="text-muted">ID поста: ${post.id}</small></p>
+          </div>
+        `;
+        postsContainer.appendChild(postEl);
+      });
+    })
+    .catch(error => {
+      console.error("Ошибка загрузки постов:", error);
+    });
+}
+
+
+loadUserPosts();
+});
+
+
+
+
+</script>
+
+{{end}}
+

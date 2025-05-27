@@ -31,10 +31,10 @@ func NewAuthHandler(router *http.ServeMux, deps AuthHandlerDeps) {
 	}
 
 	router.HandleFunc("GET /api/get-profile", handler.GetProfile())
+
+	router.HandleFunc("GET /api/profile/{id}", handler.GetOneProfile())
+
 	router.HandleFunc("POST /api/update-profile/{id}", handler.UpdateProfile())
-
-
-
 
 	router.HandleFunc("GET /api/get_balance/{id}", handler.GetBalance())
 	router.HandleFunc("POST /api/add-balance/{id}", handler.AddBalance())
@@ -53,13 +53,68 @@ func NewAuthHandler(router *http.ServeMux, deps AuthHandlerDeps) {
 	router.HandleFunc("GET /delete-friends/{id}", handler.DeleteFriends())
 
 	router.Handle("POST /api/admin/requestform", Auth(handler.RequestForm(), *deps.AuthService))
+
 }
 
 func (h *authHandler) GetProfile() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		u, _ := h.AuthService.GetProfiles(r)
+		profile, err := h.AuthService.GetProfiles(r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-		response.Json(w, u, http.StatusOK)
+		response.Json(w, profile, http.StatusOK)
+	}
+}
+
+func (h *authHandler) GetProf() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")        // <-- В Go 1.22+ должно работать
+		log.Println("Получен id:", id) // <-- Обязательно, для отладки
+
+		response.Json(w, id, http.StatusOK)
+	}
+}
+
+func (h *authHandler) GetOneProfile() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil {
+			http.Error(w, "Invalid user ID", http.StatusBadRequest)
+			return
+		}
+
+		log.Println(id)
+
+		user, err := h.AuthService.GetOneUser(id)
+		if err != nil {
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		}
+
+		profile, err := h.AuthService.GetOneProfile(user)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if profile == nil {
+			http.Error(w, "Profile not found", http.StatusNotFound)
+			return
+		}
+
+		resp := ProfileResponse{
+			Name:      user.Name,
+			Email:     user.Email,
+			Avatar:    profile.Avatar,
+			About:     profile.About,
+			Friends:   profile.Friends,
+			Status:    profile.Status,
+			CreatedAt: profile.CreatedAt.Format("2006-01-02 15:04:05"),
+			UpdatedAt: profile.UpdatedAt.Format("2006-01-02 15:04:05"),
+		}
+
+		response.Json(w, resp, http.StatusOK)
 	}
 }
 
@@ -123,7 +178,7 @@ func (h *authHandler) UpdateProfile() http.HandlerFunc {
 			return
 		}
 
-		// update redis cache
+		// обновляем кэш
 		newProfile, _ := h.AuthService.GetProfileByID(existUser.ID)
 		newUser, _ := h.AuthService.GetOneUser(existUser.ID)
 
@@ -213,6 +268,12 @@ func (h *authHandler) AllUsers() http.HandlerFunc {
 
 func (h *authHandler) AllUsersForAdmin() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+
+		user, _ := h.AuthService.AuthenticateToken(r)
+		if user.Role == "moderator" {
+			response.Json(w, struct{}{}, http.StatusOK)
+		}
+
 		users, err := h.AuthService.GetAllUsersForAdmin()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -331,7 +392,7 @@ func (h *authHandler) UpdateUser() http.HandlerFunc {
 			}
 
 			// сохраняем старый баланс если он пришел пустой
-			// если поле Wallet не передано (null), сохраняем старое значение
+			// если поле wallet не передано (null) - сохраняем старое значение
 			if user.Wallet == nil {
 				user.Wallet = &profile.Wallet
 			}
@@ -396,8 +457,6 @@ func (h *authHandler) UpdateUser() http.HandlerFunc {
 				return
 			}
 
-			// update redis cache
-			// h.AuthService.UpdateProfileCache(newProfile, newUser)
 		}
 
 		var payload struct {

@@ -1,11 +1,14 @@
 package profiles
 
 import (
-	"github.com/Iowel/app-base-server/pkg/db"
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
+
+	"github.com/Iowel/app-base-server/pkg/db"
+	"github.com/jackc/pgx/v5"
 )
 
 type ProfileRepository struct {
@@ -41,8 +44,21 @@ func (p *ProfileRepository) GetProfile(id int) (*Profile, error) {
 	query := `select user_id, avatar, about, friends, status, wallet, created_at, updated_at from profiles where user_id = $1`
 
 	var profile Profile
-	err := p.Db.Pool.QueryRow(ctx, query, id).Scan(&profile.UserID, &profile.Avatar, &profile.About, &profile.Friends, &profile.Status, &profile.Wallet, &profile.CreatedAt, &profile.UpdatedAt)
+	err := p.Db.Pool.QueryRow(ctx, query, id).Scan(
+		&profile.UserID,
+		&profile.Avatar,
+		&profile.About,
+		&profile.Friends,
+		&profile.Status,
+		&profile.Wallet,
+		&profile.CreatedAt,
+		&profile.UpdatedAt,
+	)
+
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("error find profile by id: %w", err)
 	}
 

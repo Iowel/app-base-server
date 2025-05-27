@@ -10,6 +10,113 @@
 
 <style>
 
+
+
+
+/* Стили для публикации поста с уникальными классами */
+  #postForm {
+    max-width: 480px;
+    margin: 20px auto;
+    padding: 20px 24px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 6px 15px rgb(0 0 0 / 0.1);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  #postForm h2 {
+    font-weight: 600;
+    font-size: 1.5rem;
+    margin-bottom: 16px;
+    color: #222;
+    text-align: center;
+  }
+
+  #postForm input[type="text"],
+  #postForm input[type="url"],
+  #postForm textarea {
+    width: 100%;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    border: 1.8px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+    font-family: inherit;
+    resize: vertical;
+  }
+
+  #postForm input[type="text"]::placeholder,
+  #postForm input[type="url"]::placeholder,
+  #postForm textarea::placeholder {
+    color: #999;
+    font-weight: 500;
+  }
+
+  #postForm input[type="text"]:focus,
+  #postForm input[type="url"]:focus,
+  #postForm textarea:focus {
+    border-color: #2e86de;
+    outline: none;
+  }
+
+  #postForm label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #555;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  #avatarPreview {
+    display: block;
+    margin: 0 auto 18px auto;
+    max-width: 420px;
+    border-radius: 14px;
+    box-shadow: 0 3px 10px rgb(0 0 0 / 0.1);
+    object-fit: cover;
+  }
+
+  #postForm button {
+    display: block;
+    width: 100%;
+    padding: 12px 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    background: #2e86de;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.25s ease;
+    user-select: none;
+  }
+
+  #postForm button:hover {
+    background: #1b4f9c;
+  }
+
+  /* Скрываем hr, заменяем на тонкую линию вверху */
+  hr.dropdown-divider {
+    border: none;
+    border-top: 1px solid #ddd;
+    margin: 0 auto 24px auto;
+    max-width: 480px;
+  }
+
+
+
+.friend-avatar {
+  display: block;       
+  margin: 0 auto;      
+  width: 250px;
+  height: 250px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+
+
 /* Стили для уведомлений */
 .notification {
   position: fixed;
@@ -100,7 +207,7 @@
 
 
 
-          {{if and (eq .IsAuthenticated 1) (eq .UserRole "admin")}}
+          {{if and (eq .IsAuthenticated 1) (or (eq .UserRole "admin") (eq .UserRole "moderator"))}}
 
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -123,9 +230,9 @@
           {{if eq .IsAuthenticated 1}}
 
 
-          <li id="pr-link" class="nav-item d-none">
+          {{/* <li id="pr-link" class="nav-item d-none">
             <a class="nav-link" href="/admin/books">Книги</a>
-          </li>
+          </li> */}}
 
           {{/* <li id="pr-link" class="nav-item">
             <a class="nav-link" href="/kino">Kino</a>
@@ -223,8 +330,8 @@
 
 {{if eq .IsAuthenticated 1}}
 
-    let UserRole = {{.UserRole}}; 
-    console.log(UserRole);
+let UserRole = {{.UserRole}}; 
+console.log(UserRole);
 
   let socket;
 
@@ -299,24 +406,26 @@ document.addEventListener("DOMContentLoaded", function() {
 {{end}}
 
 
-{{/* let loginLink = document.getElementById("login-link");
+
+
+let loginLink = document.getElementById("login-link");
 let registerLink = document.getElementById("register-link");
-let profileLink = document.getElementById("pr-link");
-let usersLink = document.getElementById("allUsers-link");
+{{/* let profileLink = document.getElementById("pr-link"); */}}
+{{/* let usersLink = document.getElementById("allUsers-link"); */}}
 
 
 document.addEventListener("DOMContentLoaded", function(){
     if (localStorage.getItem("token") !== null) {
        loginLink.innerHTML = '<a class="nav-link" onclick="logout()" href="#!">Logout</a>';
-       profileLink.classList.remove("d-none");
-       usersLink.classList.remove("d-none");
+       {{/* profileLink.classList.remove("d-none");
+       usersLink.classList.remove("d-none"); */}}
        registerLink.classList.add("d-none");
     } else {
       loginLink.innerHTML = '<a class="nav-link" href="/login">Login</a>';
     }
 
     loginLink.classList.remove("d-none");
-}) */}}
+})
 
 function logout() {
   localStorage.removeItem("token");

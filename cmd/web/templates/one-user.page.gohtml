@@ -43,6 +43,11 @@ class="needs-validation" autocomplete="off" novalidate="">
     </div>
 
 
+
+
+
+
+
     <div class="mb-3">
         <label for="role" class="form-label">Role</label>
         <select class="form-select" id="role" name="role" required>
@@ -77,106 +82,73 @@ class="needs-validation" autocomplete="off" novalidate="">
 checkAuth();
 checkAuthRole();
 
-// let token = localStorage.getItem("token");   
-let id = window.location.pathname.split("/").pop(); // получаем id из url-адреса
-let delBtn = document.getElementById("deleteBtn");
+document.addEventListener("DOMContentLoaded", function () {
+    let id = window.location.pathname.split("/").pop(); 
+    let delBtn = document.getElementById("deleteBtn");
+    let UserRoles = {{.UserRole}};
 
 
-function val() {
-    let form = document.getElementById("user_form");
-    if (form.checkValidity() === false) {
-        this.event.preventDefault();
-        this.event.stopPropagation();
-        form.classList.add("was-validated");
-        return 
-    }
-    form.classList.add("was-validated");
+if (id === "0" && UserRoles === "moderator") {
+    const roleSelect = document.getElementById("role");
+    const balanceInput = document.getElementById("add_balance");
 
-    // проверяем пароль
-    if (document.getElementById("password").value !== document.getElementById("verify_password").value) {
-        Swal.fire("Пароли не совпадают");
-        return
+    if (roleSelect) {
+        roleSelect.disabled = true;
     }
 
-    // отправляем данные на бэк
-let walletInput = document.getElementById("add_balance").value;
-let wallet = walletInput === "" ? null : parseInt(walletInput, 10);
-
-let payload = {
-    id: parseInt(id, 10),
-    name: document.getElementById("name").value,
-    email: document.getElementById("email").value,
-    password: document.getElementById("password").value,
-    role: document.getElementById("role").value,
-    wallet: wallet
-};
-
-
-
-    // параметры запроса
-    const requestOptions = {
-    method: 'post',
-    headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        //'Authorization': 'Bearer ' + token,
-    },
-
-    body: JSON.stringify(payload)
-  }
-
-
-    fetch('{{.SERVERIP}}/api/update-user/' + id, requestOptions)
-        .then(response => response.json())
-        .then(function(data) {
-            if (data.error) {
-                Swal.fire("Ошибка: " + data.message);
-            } else {
-                location.href = "/all-users";
-            }
-        })
-        .catch(function(error) {
-            Swal.fire("Произошла ошибка: " + error);
-        });
+    if (balanceInput) {
+        balanceInput.setAttribute("readonly", true);
+    }
 }
 
-document.addEventListener("DOMContentLoaded", function() {
-
-
     if (id !== "0") {
-
-        if (id !== "{{.UserID}}") {
+        if (id !== "{{.UserID}}" && UserRoles === "admin") {
             delBtn.classList.remove("d-none");
+        } else if (id === "{{.UserID}}") {
+            {{/* document.getElementById("role").disabled = true; */}}
         }
 
-            const requestOptions = {
-                method: 'post',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    // 'Authorization': 'Bearer ' + token,
+        if (id !== "{{.UserID}}" && UserRoles !== "admin") {
+            const fieldsToLock = [
+                "name",
+                "email",
+                "password",
+                "verify_password",
+                "add_balance",
+                "role"
+            ];
+            fieldsToLock.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    if (el.tagName === "SELECT") {
+                        el.setAttribute("disabled", true);
+                    } else {
+                        el.setAttribute("readonly", true);
+                    }
                 }
-            };
+            });
+        }
 
+        const requestOptions = {
+            method: 'post',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            }
+        };
 
-
-            fetch('{{.SERVERIP}}/api/get-all-users/' + id, requestOptions)
+        fetch('{{.SERVERIP}}/api/get-all-users/' + id, requestOptions)
             .then(response => response.json())
             .then(function (data) {
-                console.log(data);
                 if (data) {
-                    document.getElementById("name").value = data.name
-                    document.getElementById("email").value = data.email
+                    document.getElementById("name").value = data.name;
+                    document.getElementById("email").value = data.email;
+                    document.getElementById("role").value = data.role;
                 }
-            })
+            });
+    }
 
-        }
-    })
-
-
-
-
-delBtn.addEventListener("click", function(){
+    delBtn.addEventListener("click", function () {
         Swal.fire({
             title: 'Are you sure?',
             text: "You won't be able to undo this!",
@@ -186,40 +158,86 @@ delBtn.addEventListener("click", function(){
             cancelButtonColor: '#d33',
             confirmButtonText: 'Delete User'
         }).then((result) => {
-
             if (result.isConfirmed) {
-            const requestOptions = {
-                method: 'DELETE',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    // 'Authorization': 'Bearer ' + token,
-                }
-            };
-
-
-            fetch('{{.SERVERIP}}/api/delete-user/' + id, requestOptions)
-            .then(response => response.json())
-            .then(function (data) {
-                if (data.error) {
-                    Swal.fire("Произошла ошибка: " + data.message);
-                } else {
-                    // получаем доступ к вебсокету и создаем данные которые отправляем через вебсокет
-                    let jsonData = {
-                        action: "deleteUser",
-                        user_id: parseInt(id, 10),
+                const requestOptions = {
+                    method: 'DELETE',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
                     }
-                    socket.send(JSON.stringify(jsonData));
+                };
 
-                    location.href = "/all-users";
-                }
-            })
-        }
-    })
-})
+                fetch('{{.SERVERIP}}/api/delete-user/' + id, requestOptions)
+                    .then(response => response.json())
+                    .then(function (data) {
+                        if (data.error) {
+                            Swal.fire("Произошла ошибка: " + data.message);
+                        } else {
+                            let jsonData = {
+                                action: "deleteUser",
+                                user_id: parseInt(id, 10),
+                            };
+                            socket.send(JSON.stringify(jsonData));
+                            location.href = "/all-users";
+                        }
+                    });
+            }
+        });
+    });
+});
 
+function val() {
+    let form = document.getElementById("user_form");
+    if (form.checkValidity() === false) {
+        event.preventDefault();
+        event.stopPropagation();
+        form.classList.add("was-validated");
+        return;
+    }
+    form.classList.add("was-validated");
 
+    if (document.getElementById("password").value !== document.getElementById("verify_password").value) {
+        Swal.fire("Пароли не совпадают");
+        return;
+    }
+
+    let id = window.location.pathname.split("/").pop();
+    let walletInput = document.getElementById("add_balance").value;
+    let wallet = walletInput === "" ? null : parseInt(walletInput, 10);
+
+    let payload = {
+        id: parseInt(id, 10),
+        name: document.getElementById("name").value,
+        email: document.getElementById("email").value,
+        password: document.getElementById("password").value,
+        role: document.getElementById("role").value,
+        wallet: wallet
+    };
+
+    const requestOptions = {
+        method: 'post',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+    };
+
+    fetch('{{.SERVERIP}}/api/update-user/' + id, requestOptions)
+        .then(response => response.json())
+        .then(function (data) {
+            if (data.error) {
+                Swal.fire("Ошибка: " + data.message);
+            } else {
+                location.href = "/all-users";
+            }
+        })
+        .catch(function (error) {
+            Swal.fire("Произошла ошибка: " + error);
+        });
+}
 </script>
+
 
 
 {{end}}
