@@ -89,13 +89,13 @@ function renderSeats() {
             btn.textContent = `${row}-${seat}`;
 
             // Занятые места
-            if (Math.random() > 0.7) {  // Случайное заполнение мест для примера
+            if (Math.random() > 0.7) { 
                 btn.classList.add('btn-danger');
                 btn.disabled = true;
             }
 
             btn.addEventListener('click', () => {
-                if (btn.classList.contains('btn-danger')) return;  // Если место занято, не реагировать
+                if (btn.classList.contains('btn-danger')) return; 
 
                 btn.classList.toggle('btn-primary');
                 btn.classList.toggle('btn-outline-secondary');
@@ -154,9 +154,9 @@ fetch('https://kinopoiskapiunofficial.tech/api/v2.2/films/premieres?year=2025&mo
         `;
         container.appendChild(col);
 
-        // Обработчик клика по карточке фильма
+
         col.querySelector('.film-card').addEventListener('click', () => {
-            // Запрос на получение подробной информации о фильме
+
 fetch(`https://kinopoiskapiunofficial.tech/api/v2.2/films/${film.kinopoiskId}`, {
     method: 'GET',
     headers: {
@@ -164,9 +164,9 @@ fetch(`https://kinopoiskapiunofficial.tech/api/v2.2/films/${film.kinopoiskId}`, 
         'Content-Type': 'application/json',
     },
 })
-.then(res => res.json())  // Парсим сразу как JSON
+.then(res => res.json())
 .then(data => {
-    // Проверка на наличие описания
+
     const description = data.description || 'Описание отсутствует.';
     document.getElementById('filmDescription').textContent = description;
 })
@@ -186,7 +186,7 @@ fetch(`https://kinopoiskapiunofficial.tech/api/v2.2/films/${film.kinopoiskId}`, 
                 document.getElementById('filmYear').textContent = film.year;
                 document.getElementById('filmGenres').textContent = film.genres.map(g => g.genre).join(', ');
 
-                // Заполняем расписание (мок)
+
                 const scheduleHtml = `
                     <div class="session-card d-flex justify-content-between align-items-center border rounded p-2">
                         <div>
@@ -234,9 +234,9 @@ fetch(`https://kinopoiskapiunofficial.tech/api/v2.2/films/${film.kinopoiskId}`, 
 
 function showLoadingIndicator() {
     const loadingIndicator = document.getElementById('loadingIndicator');
-    loadingIndicator.classList.remove('d-none');  // Показываем индикатор
+    loadingIndicator.classList.remove('d-none');  
 
-    // Блокируем все кнопки на текущем шаге
+
     document.querySelectorAll('.btn').forEach(btn => {
         btn.disabled = true;
     });
@@ -244,9 +244,9 @@ function showLoadingIndicator() {
 
 function hideLoadingIndicator() {
     const loadingIndicator = document.getElementById('loadingIndicator');
-    loadingIndicator.classList.add('d-none');  // Скрываем индикатор
+    loadingIndicator.classList.add('d-none');  
 
-    // Разблокируем все кнопки на текущем шаге
+
     document.querySelectorAll('.btn').forEach(btn => {
         btn.disabled = false;
     });
@@ -255,11 +255,11 @@ function hideLoadingIndicator() {
 document.getElementById('toPaymentBtn').addEventListener('click', () => {
     showLoadingIndicator();  // Показываем индикатор перед обработкой
 
-    setTimeout(() => {  // Мокируем время обработки (например, запрос на сервер)
+    setTimeout(() => {  
         document.getElementById('stepSeats').classList.add('d-none');
         document.getElementById('stepPayment').classList.remove('d-none');
 
-        // Данные для оплаты
+
         const selectedSeats = Array.from(document.querySelectorAll('.seat-btn.btn-primary'))
                                    .map(btn => btn.textContent);
         document.getElementById('paymentFilm').textContent = currentFilm.nameRu || currentFilm.nameEn;
@@ -267,17 +267,17 @@ document.getElementById('toPaymentBtn').addEventListener('click', () => {
         document.getElementById('paymentSeats').textContent = selectedSeats.join(', ');
         document.getElementById('paymentAmount').textContent = selectedSeats.length * 400;
 
-        hideLoadingIndicator();  // Скрываем индикатор после обработки
-    }, 2000);  // Здесь можно заменить на реальный запрос или другую логику
+        hideLoadingIndicator();  
+    }, 2000); 
 });
 
-// Возврат с выбора мест к выбору сеанса
+
 document.getElementById('backToSessionBtn').addEventListener('click', () => {
     document.getElementById('stepSeats').classList.add('d-none');
     document.getElementById('stepSession').classList.remove('d-none');
 });
 
-// Возврат с оплаты к выбору мест
+
 document.getElementById('backToSeatsBtn').addEventListener('click', () => {
     document.getElementById('stepPayment').classList.add('d-none');
     document.getElementById('stepSeats').classList.remove('d-none');

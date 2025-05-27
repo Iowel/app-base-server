@@ -124,7 +124,6 @@ usersList.addEventListener("click", function(e) {
         .then(res => res.json())
         .then(data => {
             console.log(data);
-            // Скрываем кнопку после успешного добавления
             e.target.classList.add("d-none");
         })
         .catch(error => console.error('Ошибка при добавлении в друзья:', error));

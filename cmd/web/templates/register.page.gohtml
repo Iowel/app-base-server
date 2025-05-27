@@ -94,18 +94,18 @@ fetch("{{.AUTHSERVICEAPI}}/v1/register_user", requestOptions)
     .then(data => {
         console.log(data);
 
-        // Проверяем, есть ли поле error
-        if ('error' in data && data.error === true) {  // Если поле error есть и оно true, то ошибка
-            showError(data.message);  // Показываем ошибку
+        // прлверяем есть ли поле error (err===true = err)
+        if ('error' in data && data.error === true) {  
+            showError(data.message); 
         } else {
-            showSuccess();  // Если нет ошибки (или поля error нет), показываем успех
+            showSuccess(); 
             setTimeout(() => {
-                location.href = "/login";  // Перенаправляем на страницу логина
+                location.href = "/login";  
             }, 10000);
         }
     })
     .catch(error => {
-        console.error("Error:", error);  // Обработка ошибок сети
+        console.error("Error:", error); 
     });
 }
 </script>

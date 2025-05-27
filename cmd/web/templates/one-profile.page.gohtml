@@ -6,7 +6,8 @@
 
 {{define "content"}}
 
-  <!-- Контент профиля -->
+<!-- Контент профиля -->
+
 
 
 <div class="container mt-5">
@@ -24,7 +25,7 @@
     </p>
 
       
-      <!-- Описание -->
+      <!-- Описание юзера -->
       <p><strong>О пользователе:</strong></p>
       <p id="about">Здесь будет информация о пользователе.</p>
       
@@ -42,7 +43,7 @@
               <hr class="dropdown-divider">
       <h1><strong>Друзья:</strong></h1>
       <ul id="friends-list" class="list-group list-group-flush">
-        <!-- Друзья будут добавляться сюда через JS -->
+        <!-- друзбя будут добавляться сюда через жс -->
       </ul>
 
        <div id="users-list" class="row row-cols-1 row-cols-md-3 g-4"></div>
@@ -92,7 +93,7 @@ document.addEventListener("DOMContentLoaded", function () {
       return response.json();
     })
     .then(function (data) {
-      // Очищаем usersList перед добавлением новых элементов
+      // очищаем  usersList перед добавлением новых элементов
       usersList.innerHTML = '';
 
 

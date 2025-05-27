@@ -154,7 +154,7 @@ document.addEventListener("DOMContentLoaded", function () {
    }
 
 
-      // Добавляем карточки пользователей
+      // дрбавляем карточки юзеров
       data.friends.forEach(friendId => {
         fetch(`{{.SERVERIP}}/friends/${friendId}`, {
           method: 'GET',
@@ -164,7 +164,7 @@ document.addEventListener("DOMContentLoaded", function () {
         })
         .then(res => res.json())
         .then(friendData => {
-          // Для каждого друга создаем карточку
+          // для каждого друга создаем карточку
           friendData.forEach(friend => {
             const userCard = document.createElement('div');
             userCard.classList.add('col');
@@ -190,7 +190,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
 
-      // Добавляем обработчик события для всех кнопок удаления
+      // обработчик события для всех кнопок удаления
       usersList.addEventListener("click", function(e) {
         if (e.target && e.target.classList.contains("delete-btn")) {
           const userId = e.target.getAttribute("data-user-id");
@@ -206,14 +206,13 @@ document.addEventListener("DOMContentLoaded", function () {
           .then(res => res.json())
           .then(data => {
             console.log(data);
-            // Можно обновить список друзей или удалить карточку друга из DOM
             e.target.closest('.col').remove();
           })
           .catch(error => console.error('Ошибка удаления друга:', error));
         }
       });
 
-      // Дополнительная информация о пользователе
+      // доп инфа о юзере
       document.getElementById("user-name").textContent = data.name;
       document.getElementById("user-email").textContent = data.email;
       document.getElementById("avatar").src = data.avatar;
@@ -237,7 +236,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
 
-      // Отображение списка друзей
+      // отрбражение списка друзей
       const friendsList = document.getElementById("friends-list");
       friendsList.innerHTML = ""; // Очистим список сначала
       data.friends.forEach(friend => {
@@ -253,7 +252,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
 
-    // Функция для показа уведомлений
+ // показ уведомлений
 function showNotification(message, type) {
   const notification = document.getElementById("notification");
   notification.textContent = message;
@@ -263,14 +262,13 @@ function showNotification(message, type) {
     notification.classList.remove("show");
   }, 700); 
 
-  // Показываем уведомление
   notification.classList.add("show");
 }
 
-// Добавляем деньги на баланс при клике на кнопку
+// длрбавляем деньги на баланс
 document.getElementById("addBalanceBtn").addEventListener("click", function() {
   if (userId) {
-    const amount = 1;  // Количество, которое добавляется к балансу
+    const amount = 1;
     const requestOptions = {
       method: 'POST',
       headers: {
@@ -299,7 +297,7 @@ document.getElementById("addBalanceBtn").addEventListener("click", function() {
 
 
 
-// Обработка формы публикации поста
+// публикация поста
   document.getElementById("postForm").addEventListener("submit", function(e) {
     e.preventDefault();
 

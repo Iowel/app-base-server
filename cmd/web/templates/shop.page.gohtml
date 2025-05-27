@@ -16,7 +16,7 @@
 
   <h3 class="text-center mt-5 mb-4">Статусы</h3>
   <div id="status-list" class="d-flex justify-content-center flex-wrap gap-3">
-    <!-- сюда будут добавляться статусы -->
+
   </div>
 
 </div>
@@ -122,11 +122,11 @@ function setupBuyHandlers() {
             confirmButtonText: 'Ок'
           });
 
-          // Обновляем количество товара
+          // обновляем количество товара
           //const current = parseInt(productCntElem.innerText.match(/\d+/)[0]);
           //productCntElem.innerText = `В наличии: ${current - 1} шт.`;
 
-          // Показываем статус успеха
+          // показываем статус успеха
           statusOverlay.innerHTML = '<div class="alert alert-success text-center">✔ Оплачено</div>';
           statusOverlay.classList.remove('d-none');
         } else {

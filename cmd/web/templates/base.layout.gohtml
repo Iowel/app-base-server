@@ -373,11 +373,10 @@ console.log(UserRole);
 
 
 document.addEventListener("DOMContentLoaded", function() {
-    // Получаем ID пользователя из шаблона (предположительно передаётся через контекст Go)
     const userId = {{.UserID}}; 
     console.log(userId);
 
-    // Функция для получения баланса пользователя
+    // плдучаем баланс юзера
     async function getUserBalance() {
         try {
             const response = await fetch(`{{.SERVERIP}}/api/get_balance/${userId}`);
@@ -394,7 +393,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
-    // Загружаем баланс пользователя при загрузке страницы
+    // зщпгружаем баланс юзера при загрузке страницы
     getUserBalance();
 
 });

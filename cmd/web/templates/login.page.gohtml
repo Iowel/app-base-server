@@ -4,6 +4,9 @@
     Login
 {{end}}
 
+
+<!-- Страница входа -->
+
 {{define "content"}}
 <div class="row">
 <div class="col-md-6 offset-md-3">
@@ -92,9 +95,8 @@ fetch("{{.AUTHSERVICEAPI}}/v1/login_user", requestOptions)
     .then(data => {
         console.log(data);
 
-        // Проверяем, есть ли поле error
-        if ('error' in data && data.error === true) {  // Если поле error есть и оно true, то ошибка
-            showError(data.message);  // Показываем ошибку
+        if ('error' in data && data.error === true) {  
+            showError(data.message);  
         } else {
             localStorage.setItem('token', data.token.plaintext);
             localStorage.setItem('token_expiry', data.token.expiry);
