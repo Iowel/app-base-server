@@ -70,8 +70,8 @@ func (h *authHandler) GetProfile() http.HandlerFunc {
 
 func (h *authHandler) GetProf() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := r.PathValue("id")        // <-- В Go 1.22+ должно работать
-		log.Println("Получен id:", id) // <-- Обязательно, для отладки
+		id := r.PathValue("id") 
+		log.Println("Получен id:", id)
 
 		response.Json(w, id, http.StatusOK)
 	}
